@@ -1,6 +1,7 @@
 
 import ConfessionsPage from "@/components/ConfessionsPage";
 import UserDashboard from "@/components/UserDashboard";
+import AdminDashboard from "@/components/AdminDashboard";
 import CulpritSearch from "@/components/CulpritSearch";
 import AnonymousDiary from "@/components/AnonymousDiary";
 import DepressionHelpline from "@/components/DepressionHelpline";
@@ -27,7 +28,9 @@ const PageRouter = ({
 }: PageRouterProps) => {
   switch (currentPage) {
     case "dashboard":
-      return user ? <UserDashboard user={user} /> : null;
+      return user ? (
+        user.role === "admin" ? <AdminDashboard user={user} /> : <UserDashboard user={user} />
+      ) : null;
     case "search":
       if (!handleRestrictedAction("search for people")) return null;
       return <CulpritSearch />;

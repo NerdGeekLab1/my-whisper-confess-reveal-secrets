@@ -18,7 +18,9 @@ const Index = () => {
     setShowAuthModal,
     handleAuth,
     handleLogout,
-    handleRestrictedAction
+    handleRestrictedAction,
+    handleDemoLogin,
+    validateDemoCredentials
   } = useAuth();
 
   const handlePageChange = (page: string) => {
@@ -65,6 +67,8 @@ const Index = () => {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onAuth={handleAuth}
+        onDemoLogin={handleDemoLogin}
+        validateDemoCredentials={validateDemoCredentials}
       />
     </div>
   );

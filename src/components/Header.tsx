@@ -85,8 +85,17 @@ const Header = ({
                 onClick={() => setCurrentPage("dashboard")}
                 className={currentPage === "dashboard" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
               >
-                <User className="w-4 h-4 mr-2" />
-                Dashboard
+                {user.role === "admin" ? (
+                  <>
+                    <Shield className="w-4 h-4 mr-2" />
+                    Admin Panel
+                  </>
+                ) : (
+                  <>
+                    <User className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -99,7 +108,15 @@ const Header = ({
             
             {user ? (
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-slate-300">Welcome, {user.username}</span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-slate-300">Welcome, {user.username}</span>
+                  {user.role === "admin" && (
+                    <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+                      <Shield className="w-3 h-3 mr-1" />
+                      Admin
+                    </Badge>
+                  )}
+                </div>
                 <Button 
                   variant="ghost" 
                   size="sm"

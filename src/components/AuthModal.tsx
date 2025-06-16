@@ -5,15 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff, Mail, Lock, User, Shield } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Eye, EyeOff, Mail, Lock, User, Shield, UserCheck, ShieldCheck } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAuth: (user: any) => void;
+  onDemoLogin?: (accountType: 'user' | 'admin') => void;
+  validateDemoCredentials?: (email: string, password: string) => any;
 }
 
-const AuthModal = ({ isOpen, onClose, onAuth }: AuthModalProps) => {
+const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin, validateDemoCredentials }: AuthModalProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -33,12 +36,24 @@ const AuthModal = ({ isOpen, onClose, onAuth }: AuthModalProps) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
+    // Check for demo credentials first
+    if (validateDemoCredentials) {
+      const demoUser = validateDemoCredentials(loginForm.email, loginForm.password);
+      if (demoUser) {
+        onAuth(demoUser);
+        setIsLoading(false);
+        onClose();
+        return;
+      }
+    }
+
+    // Simulate API call for regular login
     setTimeout(() => {
       const user = {
-        id: 1,
+        id: Date.now(),
         username: "anonymous_user",
         email: loginForm.email,
+        role: "user",
         isVerified: true
       };
       onAuth(user);
@@ -59,15 +74,22 @@ const AuthModal = ({ isOpen, onClose, onAuth }: AuthModalProps) => {
     // Simulate API call
     setTimeout(() => {
       const user = {
-        id: 2,
+        id: Date.now(),
         username: signupForm.username,
         email: signupForm.email,
+        role: "user",
         isVerified: false
       };
       onAuth(user);
       setIsLoading(false);
       onClose();
     }, 1000);
+  };
+
+  const handleDemoLoginClick = (accountType: 'user' | 'admin') => {
+    if (onDemoLogin) {
+      onDemoLogin(accountType);
+    }
   };
 
   return (
@@ -79,6 +101,35 @@ const AuthModal = ({ isOpen, onClose, onAuth }: AuthModalProps) => {
             <span>Secure Authentication</span>
           </DialogTitle>
         </DialogHeader>
+
+        {/* Demo Login Section */}
+        <div className="space-y-3 p-4 bg-slate-800 rounded-lg">
+          <h3 className="text-sm font-medium text-slate-300 text-center">Quick Demo Access</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={() => handleDemoLoginClick('user')}
+              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-sm"
+              size="sm"
+            >
+              <UserCheck className="w-4 h-4 mr-2" />
+              Demo User
+            </Button>
+            <Button
+              onClick={() => handleDemoLoginClick('admin')}
+              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-sm"
+              size="sm"
+            >
+              <ShieldCheck className="w-4 h-4 mr-2" />
+              Demo Admin
+            </Button>
+          </div>
+          <div className="text-xs text-slate-400 space-y-1">
+            <p><strong>User Demo:</strong> user@demo.com / demo123</p>
+            <p><strong>Admin Demo:</strong> admin@demo.com / admin123</p>
+          </div>
+        </div>
+
+        <Separator className="bg-slate-700" />
 
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-slate-800">
