@@ -1,0 +1,252 @@
+
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Eye, EyeOff, Mail, Lock, User, Shield } from "lucide-react";
+
+interface AuthModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAuth: (user: any) => void;
+}
+
+const AuthModal = ({ isOpen, onClose, onAuth }: AuthModalProps) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const [loginForm, setLoginForm] = useState({
+    email: "",
+    password: ""
+  });
+
+  const [signupForm, setSignupForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: ""
+  });
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      const user = {
+        id: 1,
+        username: "anonymous_user",
+        email: loginForm.email,
+        isVerified: true
+      };
+      onAuth(user);
+      setIsLoading(false);
+      onClose();
+    }, 1000);
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (signupForm.password !== signupForm.confirmPassword) {
+      alert("Passwords don't match");
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      const user = {
+        id: 2,
+        username: signupForm.username,
+        email: signupForm.email,
+        isVerified: false
+      };
+      onAuth(user);
+      setIsLoading(false);
+      onClose();
+    }, 1000);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-center flex items-center justify-center space-x-2">
+            <Shield className="w-5 h-5 text-green-400" />
+            <span>Secure Authentication</span>
+          </DialogTitle>
+        </DialogHeader>
+
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-800">
+            <TabsTrigger value="login" className="text-slate-300 data-[state=active]:text-white">
+              Login
+            </TabsTrigger>
+            <TabsTrigger value="signup" className="text-slate-300 data-[state=active]:text-white">
+              Sign Up
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="login" className="space-y-4 mt-6">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="login-email" className="text-slate-300">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={loginForm.email}
+                    onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
+                    className="pl-10 bg-slate-800 border-slate-600 text-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="login-password" className="text-slate-300">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <Input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={loginForm.password}
+                    onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
+                    className="pl-10 pr-10 bg-slate-800 border-slate-600 text-white"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-2 text-slate-400 hover:text-white"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <Button 
+                type="submit" 
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+              >
+                {isLoading ? "Signing In..." : "Sign In"}
+              </Button>
+            </form>
+
+            <div className="text-center">
+              <Button variant="link" className="text-slate-400 hover:text-white text-sm">
+                Forgot password?
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="signup" className="space-y-4 mt-6">
+            <form onSubmit={handleSignup} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="signup-username" className="text-slate-300">Username</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <Input
+                    id="signup-username"
+                    type="text"
+                    placeholder="Choose a username"
+                    value={signupForm.username}
+                    onChange={(e) => setSignupForm({...signupForm, username: e.target.value})}
+                    className="pl-10 bg-slate-800 border-slate-600 text-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="signup-email" className="text-slate-300">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={signupForm.email}
+                    onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
+                    className="pl-10 bg-slate-800 border-slate-600 text-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="signup-password" className="text-slate-300">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <Input
+                    id="signup-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create a password"
+                    value={signupForm.password}
+                    onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
+                    className="pl-10 pr-10 bg-slate-800 border-slate-600 text-white"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-2 text-slate-400 hover:text-white"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="signup-confirm" className="text-slate-300">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <Input
+                    id="signup-confirm"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={signupForm.confirmPassword}
+                    onChange={(e) => setSignupForm({...signupForm, confirmPassword: e.target.value})}
+                    className="pl-10 bg-slate-800 border-slate-600 text-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <Button 
+                type="submit" 
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
+              >
+                {isLoading ? "Creating Account..." : "Create Account"}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+
+        <div className="mt-6 p-4 bg-slate-800 rounded-lg">
+          <div className="flex items-center space-x-2 mb-2">
+            <Shield className="w-4 h-4 text-green-400" />
+            <span className="text-sm font-medium text-green-400">Privacy Protected</span>
+          </div>
+          <p className="text-xs text-slate-400">
+            Your data is encrypted and anonymized. We never share personal information.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default AuthModal;
