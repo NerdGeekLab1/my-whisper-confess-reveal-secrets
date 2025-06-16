@@ -18,9 +18,11 @@ import {
 
 interface UserDashboardProps {
   user: any;
+  setCurrentPage?: (page: string) => void;
+  setShowPostCreator?: (show: boolean) => void;
 }
 
-const UserDashboard = ({ user }: UserDashboardProps) => {
+const UserDashboard = ({ user, setCurrentPage, setShowPostCreator }: UserDashboardProps) => {
   const [notifications, setNotifications] = useState(3);
 
   const userStats = {
@@ -35,6 +37,24 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
     { type: "diary", title: "Daily reflection entry saved", time: "1 day ago" },
     { type: "support", title: "You supported 3 community members", time: "2 days ago" },
   ];
+
+  const handleShareStory = () => {
+    if (setShowPostCreator) {
+      setShowPostCreator(true);
+    }
+  };
+
+  const handleWriteDiary = () => {
+    if (setCurrentPage) {
+      setCurrentPage("diary");
+    }
+  };
+
+  const handleGetSupport = () => {
+    if (setCurrentPage) {
+      setCurrentPage("helpline");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">
@@ -143,15 +163,24 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                 <CardTitle className="text-white">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600">
+                <Button 
+                  onClick={handleShareStory}
+                  className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
+                >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Share New Story
                 </Button>
-                <Button className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600">
+                <Button 
+                  onClick={handleWriteDiary}
+                  className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
+                >
                   <BookOpen className="w-4 h-4 mr-2" />
                   Write in Diary
                 </Button>
-                <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                <Button 
+                  onClick={handleGetSupport}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                >
                   <Heart className="w-4 h-4 mr-2" />
                   Get Support
                 </Button>

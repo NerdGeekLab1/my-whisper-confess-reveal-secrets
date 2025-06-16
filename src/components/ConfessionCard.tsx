@@ -3,8 +3,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Share2, Shield, Clock, Eye, AlertTriangle, MoreHorizontal } from "lucide-react";
+import { MessageCircle, Share2, Shield, MoreHorizontal, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import PostReactions from "@/components/PostReactions";
 
 interface Confession {
   id: number;
@@ -27,18 +28,12 @@ interface ConfessionCardProps {
 }
 
 const ConfessionCard = ({ confession }: ConfessionCardProps) => {
-  const [userReaction, setUserReaction] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const handleReaction = (type: string) => {
-    setUserReaction(userReaction === type ? null : type);
+  const handleReactionChange = (postId: string, reactions: { [key: string]: number }) => {
+    // In a real app, this would update the backend
+    console.log('Reaction updated for post:', postId, reactions);
   };
-
-  const reactionButtons = [
-    { type: "support", icon: Heart, label: "Support", color: "text-pink-400", count: confession.reactions.support },
-    { type: "shocked", icon: AlertTriangle, label: "Shocked", color: "text-orange-400", count: confession.reactions.shocked },
-    { type: "similar", icon: Eye, label: "Similar Experience", color: "text-blue-400", count: confession.reactions.similar },
-  ];
 
   return (
     <Card className="bg-slate-900 border-slate-700 hover:border-slate-600 transition-colors">
@@ -84,35 +79,27 @@ const ConfessionCard = ({ confession }: ConfessionCardProps) => {
           ))}
         </div>
 
-        {/* Reactions */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-800">
-          <div className="flex space-x-1">
-            {reactionButtons.map(({ type, icon: Icon, label, color, count }) => (
-              <Button
-                key={type}
-                variant="ghost"
-                size="sm"
-                onClick={() => handleReaction(type)}
-                className={cn(
-                  "flex items-center space-x-1 text-slate-400 hover:text-white transition-colors",
-                  userReaction === type && color
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="text-sm">{count}</span>
-              </Button>
-            ))}
-          </div>
+        {/* New Reactions System */}
+        <PostReactions 
+          postId={confession.id.toString()}
+          initialReactions={{
+            support: confession.reactions.support,
+            relate: confession.reactions.similar,
+            encourage: Math.floor(confession.reactions.shocked / 2)
+          }}
+          onReactionChange={handleReactionChange}
+        />
 
-          <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
-              <MessageCircle className="w-4 h-4 mr-1" />
-              <span className="text-sm">{confession.comments}</span>
-            </Button>
-            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
-              <Share2 className="w-4 h-4" />
-            </Button>
-          </div>
+        {/* Comments and Share */}
+        <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
+            <MessageCircle className="w-4 h-4 mr-1" />
+            <span className="text-sm">{confession.comments} Comments</span>
+          </Button>
+          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
+            <Share2 className="w-4 h-4 mr-1" />
+            <span className="text-sm">Share</span>
+          </Button>
         </div>
       </CardContent>
     </Card>

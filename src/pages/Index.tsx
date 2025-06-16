@@ -51,6 +51,7 @@ const Index = () => {
           setSelectedCategory={setSelectedCategory}
           setShowAuthModal={setShowAuthModal}
           setCurrentPage={setCurrentPage}
+          setShowPostCreator={setShowPostCreator}
           handleRestrictedAction={handleRestrictedAction}
         />
       </div>
