@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ import {
   Settings,
   Bell
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface UserDashboardProps {
   user: any;
@@ -23,76 +22,19 @@ interface UserDashboardProps {
 
 const UserDashboard = ({ user }: UserDashboardProps) => {
   const [notifications, setNotifications] = useState(3);
-  const [userStats, setUserStats] = useState({
-    storiesPosted: 0,
-    supportGiven: 0,
-    diaryEntries: 0,
-    daysActive: 0
-  });
-  const [profile, setProfile] = useState<any>(null);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user?.id) return;
+  const userStats = {
+    storiesPosted: 5,
+    supportGiven: 23,
+    diaryEntries: 12,
+    daysActive: 28
+  };
 
-      try {
-        // Fetch user profile
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        setProfile(profileData);
-
-        // Fetch user posts count
-        const { count: postsCount } = await supabase
-          .from('posts')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-
-        // Fetch diary entries count
-        const { count: diaryCount } = await supabase
-          .from('diary_entries')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-
-        // Calculate days active (simplified)
-        const joinedDate = new Date(profileData?.joined_date || user.created_at);
-        const daysActive = Math.floor((Date.now() - joinedDate.getTime()) / (1000 * 60 * 60 * 24));
-
-        setUserStats({
-          storiesPosted: postsCount || 0,
-          supportGiven: 23, // This would need a reactions table to be accurate
-          diaryEntries: diaryCount || 0,
-          daysActive: Math.max(1, daysActive)
-        });
-
-        // Fetch recent posts for activity
-        const { data: recentPosts } = await supabase
-          .from('posts')
-          .select('title, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(3);
-
-        const activities = [
-          ...(recentPosts || []).map(post => ({
-            type: "confession",
-            title: `Your confession "${post.title}" was posted`,
-            time: new Date(post.created_at).toLocaleDateString()
-          }))
-        ];
-
-        setRecentActivity(activities);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-
-    fetchUserData();
-  }, [user]);
+  const recentActivity = [
+    { type: "confession", title: "Your confession received 15 new support reactions", time: "2 hours ago" },
+    { type: "diary", title: "Daily reflection entry saved", time: "1 day ago" },
+    { type: "support", title: "You supported 3 community members", time: "2 days ago" },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">
@@ -102,15 +44,9 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-white mb-2">
-                Welcome back, {profile?.username || user?.email?.split('@')[0]}
+                Welcome back, {user.username}
               </h1>
               <p className="text-slate-400">Your safe space for healing and truth</p>
-              {profile?.role === 'admin' && (
-                <Badge className="mt-2 bg-red-500/20 text-red-400 border-red-500/30">
-                  <Shield className="w-3 h-3 mr-1" />
-                  Admin Account
-                </Badge>
-              )}
             </div>
             <div className="flex items-center space-x-4">
               <Button variant="outline" size="sm" className="border-slate-600 text-slate-300">
@@ -187,22 +123,15 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {recentActivity.length > 0 ? (
-                  recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-start space-x-3 p-3 bg-slate-800 rounded-lg">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
-                      <div className="flex-1">
-                        <p className="text-slate-300">{activity.title}</p>
-                        <p className="text-xs text-slate-500">{activity.time}</p>
-                      </div>
+                {recentActivity.map((activity, index) => (
+                  <div key={index} className="flex items-start space-x-3 p-3 bg-slate-800 rounded-lg">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
+                    <div className="flex-1">
+                      <p className="text-slate-300">{activity.title}</p>
+                      <p className="text-xs text-slate-500">{activity.time}</p>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center text-slate-400 py-8">
-                    <p>No recent activity yet.</p>
-                    <p className="text-sm">Start by sharing your story or writing in your diary.</p>
                   </div>
-                )}
+                ))}
               </CardContent>
             </Card>
           </div>

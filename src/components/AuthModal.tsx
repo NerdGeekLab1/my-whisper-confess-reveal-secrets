@@ -7,17 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, Lock, User, Shield, UserCheck, ShieldCheck } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onAuth: (user: any) => void;
+  onDemoLogin?: (accountType: 'user' | 'admin') => void;
+  validateDemoCredentials?: (email: string, password: string) => any;
 }
 
-const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
+const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin, validateDemoCredentials }: AuthModalProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
   
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -35,11 +36,30 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     e.preventDefault();
     setIsLoading(true);
     
-    const { error } = await signIn(loginForm.email, loginForm.password);
-    if (!error) {
-      onClose();
+    // Check for demo credentials first
+    if (validateDemoCredentials) {
+      const demoUser = validateDemoCredentials(loginForm.email, loginForm.password);
+      if (demoUser) {
+        onAuth(demoUser);
+        setIsLoading(false);
+        onClose();
+        return;
+      }
     }
-    setIsLoading(false);
+
+    // Simulate API call for regular login
+    setTimeout(() => {
+      const user = {
+        id: Date.now(),
+        username: "anonymous_user",
+        email: loginForm.email,
+        role: "user",
+        isVerified: true
+      };
+      onAuth(user);
+      setIsLoading(false);
+      onClose();
+    }, 1000);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -50,24 +70,26 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     }
     
     setIsLoading(true);
-    const { error } = await signUp(signupForm.email, signupForm.password, signupForm.username);
-    if (!error) {
+    
+    // Simulate API call
+    setTimeout(() => {
+      const user = {
+        id: Date.now(),
+        username: signupForm.username,
+        email: signupForm.email,
+        role: "user",
+        isVerified: false
+      };
+      onAuth(user);
+      setIsLoading(false);
       onClose();
-    }
-    setIsLoading(false);
+    }, 1000);
   };
 
-  const handleDemoLogin = async (accountType: 'user' | 'admin') => {
-    setIsLoading(true);
-    const credentials = accountType === 'user' 
-      ? { email: 'user@demo.com', password: 'demo123' }
-      : { email: 'admin@demo.com', password: 'admin123' };
-    
-    const { error } = await signIn(credentials.email, credentials.password);
-    if (!error) {
-      onClose();
+  const handleDemoLoginClick = (accountType: 'user' | 'admin') => {
+    if (onDemoLogin) {
+      onDemoLogin(accountType);
     }
-    setIsLoading(false);
   };
 
   return (
@@ -85,8 +107,7 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
           <h3 className="text-sm font-medium text-slate-300 text-center">Quick Demo Access</h3>
           <div className="grid grid-cols-2 gap-3">
             <Button
-              onClick={() => handleDemoLogin('user')}
-              disabled={isLoading}
+              onClick={() => handleDemoLoginClick('user')}
               className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-sm"
               size="sm"
             >
@@ -94,8 +115,7 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
               Demo User
             </Button>
             <Button
-              onClick={() => handleDemoLogin('admin')}
-              disabled={isLoading}
+              onClick={() => handleDemoLoginClick('admin')}
               className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-sm"
               size="sm"
             >
@@ -172,6 +192,12 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                 {isLoading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
+
+            <div className="text-center">
+              <Button variant="link" className="text-slate-400 hover:text-white text-sm">
+                Forgot password?
+              </Button>
+            </div>
           </TabsContent>
 
           <TabsContent value="signup" className="space-y-4 mt-6">

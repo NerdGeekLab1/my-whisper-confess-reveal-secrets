@@ -1,51 +1,60 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { User, Session } from "@supabase/supabase-js";
+
+// Demo accounts
+const DEMO_ACCOUNTS = {
+  user: {
+    email: "user@demo.com",
+    password: "demo123",
+    userData: {
+      id: 1,
+      username: "demo_user",
+      email: "user@demo.com",
+      role: "user",
+      isVerified: true,
+      joinedDate: "2024-01-15",
+      lastActive: "2024-06-16"
+    }
+  },
+  admin: {
+    email: "admin@demo.com",
+    password: "admin123",
+    userData: {
+      id: 2,
+      username: "admin_user",
+      email: "admin@demo.com",
+      role: "admin",
+      isVerified: true,
+      joinedDate: "2024-01-01",
+      lastActive: "2024-06-16"
+    }
+  }
+};
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+  const handleAuth = (userData: any) => {
+    setUser(userData);
+    const welcomeMessage = userData.role === 'admin' 
+      ? "Welcome Admin! You have full access to all platform features."
+      : "Welcome to TruthSpace! You can now access all features including posting and your private diary.";
+    
+    toast({
+      title: userData.role === 'admin' ? "Admin Access Granted" : "Welcome to TruthSpace!",
+      description: welcomeMessage,
     });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleAuth = async (userData: any) => {
-    // This is now handled by the auth state change listener
-    setShowAuthModal(false);
   };
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Logged out",
-        description: "You've been safely logged out. Your anonymity remains protected.",
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  const handleLogout = () => {
+    setUser(null);
+    toast({
+      title: "Logged out",
+      description: "You've been safely logged out. Your anonymity remains protected.",
+    });
   };
 
   const handleRestrictedAction = (action: string) => {
@@ -61,83 +70,30 @@ export const useAuth = () => {
     return true;
   };
 
-  const signUp = async (email: string, password: string, username?: string) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            username: username || `user_${Date.now()}`
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Account created successfully!",
-        description: "Please check your email to verify your account.",
-      });
-
-      return { data, error: null };
-    } catch (error: any) {
-      toast({
-        title: "Sign up failed",
-        description: error.message,
-        variant: "destructive"
-      });
-      return { data: null, error };
-    }
+  const handleDemoLogin = (accountType: 'user' | 'admin') => {
+    const demoAccount = DEMO_ACCOUNTS[accountType];
+    handleAuth(demoAccount.userData);
+    setShowAuthModal(false);
   };
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) throw error;
-
-      // Fetch user profile to get role
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-
-      const welcomeMessage = profile?.role === 'admin' 
-        ? "Welcome Admin! You have full access to all platform features."
-        : "Welcome to TruthSpace! You can now access all features including posting and your private diary.";
-      
-      toast({
-        title: profile?.role === 'admin' ? "Admin Access Granted" : "Welcome to TruthSpace!",
-        description: welcomeMessage,
-      });
-
-      return { data, error: null };
-    } catch (error: any) {
-      toast({
-        title: "Sign in failed",
-        description: error.message,
-        variant: "destructive"
-      });
-      return { data: null, error };
+  const validateDemoCredentials = (email: string, password: string) => {
+    if (email === DEMO_ACCOUNTS.user.email && password === DEMO_ACCOUNTS.user.password) {
+      return DEMO_ACCOUNTS.user.userData;
     }
+    if (email === DEMO_ACCOUNTS.admin.email && password === DEMO_ACCOUNTS.admin.password) {
+      return DEMO_ACCOUNTS.admin.userData;
+    }
+    return null;
   };
 
   return {
     user,
-    session,
-    loading,
     showAuthModal,
     setShowAuthModal,
     handleAuth,
     handleLogout,
     handleRestrictedAction,
-    signUp,
-    signIn
+    handleDemoLogin,
+    validateDemoCredentials
   };
 };

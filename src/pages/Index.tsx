@@ -14,25 +14,22 @@ const Index = () => {
 
   const {
     user,
-    loading,
     showAuthModal,
     setShowAuthModal,
     handleAuth,
     handleLogout,
-    handleRestrictedAction
+    handleRestrictedAction,
+    handleDemoLogin,
+    validateDemoCredentials
   } = useAuth();
 
   const handlePageChange = (page: string) => {
-    setCurrentPage(page);
+    if (page === "confessions") {
+      setCurrentPage(page);
+    } else {
+      setCurrentPage(page);
+    }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
-        <div className="text-white text-lg">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -69,6 +66,9 @@ const Index = () => {
       <AuthModal 
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
+        onAuth={handleAuth}
+        onDemoLogin={handleDemoLogin}
+        validateDemoCredentials={validateDemoCredentials}
       />
     </div>
   );
