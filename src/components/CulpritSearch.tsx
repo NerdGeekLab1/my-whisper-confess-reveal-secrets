@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, AlertTriangle, MapPin, Building, GraduationCap, Phone, Instagram } from "lucide-react";
+import CulpritDetailView from "./CulpritDetailView";
 
 interface SearchFilters {
   name: string;
@@ -43,6 +44,7 @@ const CulpritSearch = () => {
 
   const [results, setResults] = useState<CulpritRecord[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedCulprit, setSelectedCulprit] = useState<number | null>(null);
 
   // Mock data for demonstration
   const mockResults: CulpritRecord[] = [
@@ -89,6 +91,24 @@ const CulpritSearch = () => {
       default: return "bg-gray-500/20 text-gray-400 border-gray-500/50";
     }
   };
+
+  const handleViewDetails = (culpritId: number) => {
+    setSelectedCulprit(culpritId);
+  };
+
+  const handleBackToSearch = () => {
+    setSelectedCulprit(null);
+  };
+
+  // If a culprit is selected, show the detailed view
+  if (selectedCulprit) {
+    return (
+      <CulpritDetailView 
+        culpritId={selectedCulprit} 
+        onBack={handleBackToSearch} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">
@@ -238,7 +258,12 @@ const CulpritSearch = () => {
                     <span className="text-sm text-slate-400">
                       {result.reportCount} reports filed
                     </span>
-                    <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-800">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                      onClick={() => handleViewDetails(result.id)}
+                    >
                       View Details
                     </Button>
                   </div>

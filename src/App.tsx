@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CommunityGuidelines from "./pages/CommunityGuidelines";
 import TechnicalDocumentation from "./pages/TechnicalDocumentation";
+import FeatureDocumentation from "./pages/FeatureDocumentation";
 import TermsOfService from "./pages/TermsOfService";
 import ReportAbuse from "./pages/ReportAbuse";
 import DataProtection from "./pages/DataProtection";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/guidelines" element={<CommunityGuidelines />} />
           <Route path="/technical" element={<TechnicalDocumentation />} />
+          <Route path="/features" element={<FeatureDocumentation />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/report-abuse" element={<ReportAbuse />} />
           <Route path="/data-protection" element={<DataProtection />} />
