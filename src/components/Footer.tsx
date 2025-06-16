@@ -52,10 +52,11 @@ const Footer = () => {
             <h4 className="text-lg font-semibold text-white">Legal & Safety</h4>
             <ul className="space-y-2 text-slate-400">
               <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-              <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+              <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
               <li><Link to="/guidelines" className="hover:text-white transition-colors">Community Guidelines</Link></li>
-              <li><a href="mailto:abuse@truthspace.app" className="hover:text-white transition-colors">Report Abuse</a></li>
-              <li><a href="https://gdpr.eu/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Data Protection</a></li>
+              <li><Link to="/report-abuse" className="hover:text-white transition-colors">Report Abuse</Link></li>
+              <li><Link to="/data-protection" className="hover:text-white transition-colors">Data Protection</Link></li>
+              <li><Link to="/technical" className="hover:text-white transition-colors">Technical Docs</Link></li>
             </ul>
           </div>
 
