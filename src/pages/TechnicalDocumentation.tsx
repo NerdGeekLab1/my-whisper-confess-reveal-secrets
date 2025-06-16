@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Code, Database, Shield, Server, Globe, Zap } from "lucide-react";
+import { Code, Database, Shield, Server, Globe, Zap, MessageCircle, Brain, Users, Heart } from "lucide-react";
 
 const TechnicalDocumentation = () => {
   const navigate = useNavigate();
@@ -23,16 +23,16 @@ const TechnicalDocumentation = () => {
             <Code className="w-10 h-10 mr-4 text-blue-400" />
             Technical Documentation
           </h1>
-          <p className="text-slate-400 text-lg">Complete technical overview of TruthSpace platform</p>
+          <p className="text-slate-400 text-lg">Complete technical overview and roadmap for TruthSpace platform</p>
         </div>
 
         <div className="space-y-8">
-          {/* Architecture Overview */}
+          {/* Current Architecture Overview */}
           <Card className="bg-slate-900 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center text-2xl">
                 <Server className="w-6 h-6 mr-3 text-green-400" />
-                System Architecture
+                Current System Architecture
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300 space-y-6">
@@ -64,18 +64,72 @@ const TechnicalDocumentation = () => {
             </CardContent>
           </Card>
 
-          {/* Database Schema */}
+          {/* Enhanced Features Roadmap */}
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center text-2xl">
+                <Zap className="w-6 h-6 mr-3 text-yellow-400" />
+                Enhanced Features Roadmap
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-slate-300 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-slate-800 p-4 rounded-lg">
+                  <MessageCircle className="w-8 h-8 text-blue-400 mb-3" />
+                  <h3 className="text-lg font-semibold text-white mb-2">Real-time Chat</h3>
+                  <ul className="text-sm space-y-1">
+                    <li>• Peer support chat rooms</li>
+                    <li>• Anonymous group sessions</li>
+                    <li>• Crisis intervention chat</li>
+                    <li>• Live notifications</li>
+                  </ul>
+                </div>
+                <div className="bg-slate-800 p-4 rounded-lg">
+                  <Brain className="w-8 h-8 text-purple-400 mb-3" />
+                  <h3 className="text-lg font-semibold text-white mb-2">AI Integration</h3>
+                  <ul className="text-sm space-y-1">
+                    <li>• Sentiment analysis</li>
+                    <li>• Auto content moderation</li>
+                    <li>• Resource recommendations</li>
+                    <li>• Mood pattern analysis</li>
+                  </ul>
+                </div>
+                <div className="bg-slate-800 p-4 rounded-lg">
+                  <Users className="w-8 h-8 text-green-400 mb-3" />
+                  <h3 className="text-lg font-semibold text-white mb-2">Community</h3>
+                  <ul className="text-sm space-y-1">
+                    <li>• Support group creation</li>
+                    <li>• Anonymous matching</li>
+                    <li>• Achievement system</li>
+                    <li>• Weekly challenges</li>
+                  </ul>
+                </div>
+                <div className="bg-slate-800 p-4 rounded-lg">
+                  <Heart className="w-8 h-8 text-red-400 mb-3" />
+                  <h3 className="text-lg font-semibold text-white mb-2">Personal Tools</h3>
+                  <ul className="text-sm space-y-1">
+                    <li>• Mood tracking journal</li>
+                    <li>• Goal setting system</li>
+                    <li>• Reflection prompts</li>
+                    <li>• Progress analytics</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Enhanced Database Schema */}
           <Card className="bg-slate-900 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center text-2xl">
                 <Database className="w-6 h-6 mr-3 text-purple-400" />
-                Database Schema
+                Enhanced Database Schema
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Core Tables</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">Current Core Tables</h3>
                   <div className="space-y-4">
                     <div className="bg-slate-800 p-4 rounded-lg">
                       <h4 className="font-semibold text-blue-300">profiles</h4>
@@ -98,24 +152,33 @@ const TechnicalDocumentation = () => {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Supporting Tables</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">Proposed New Tables</h3>
                   <div className="space-y-4">
-                    <div className="bg-slate-800 p-4 rounded-lg">
-                      <h4 className="font-semibold text-orange-300">diary_entries</h4>
-                      <p className="text-sm text-slate-400 mb-2">Private user diary system</p>
+                    <div className="bg-slate-800 p-4 rounded-lg border-l-4 border-yellow-400">
+                      <h4 className="font-semibold text-yellow-300">chat_rooms</h4>
+                      <p className="text-sm text-slate-400 mb-2">Real-time support chat rooms</p>
                       <ul className="text-xs space-y-1">
-                        <li>• id, user_id, title, content</li>
-                        <li>• mood, is_private</li>
-                        <li>• created_at, updated_at</li>
+                        <li>• id, name, type, max_participants</li>
+                        <li>• is_active, created_by</li>
+                        <li>• created_at, expires_at</li>
                       </ul>
                     </div>
-                    <div className="bg-slate-800 p-4 rounded-lg">
-                      <h4 className="font-semibold text-red-300">reports</h4>
-                      <p className="text-sm text-slate-400 mb-2">Content moderation system</p>
+                    <div className="bg-slate-800 p-4 rounded-lg border-l-4 border-cyan-400">
+                      <h4 className="font-semibold text-cyan-300">mood_entries</h4>
+                      <p className="text-sm text-slate-400 mb-2">Daily mood tracking system</p>
                       <ul className="text-xs space-y-1">
-                        <li>• id, post_id, reporter_id</li>
-                        <li>• reason, status</li>
-                        <li>• created_at</li>
+                        <li>• id, user_id, mood_score</li>
+                        <li>• emotions, notes</li>
+                        <li>• logged_at, factors</li>
+                      </ul>
+                    </div>
+                    <div className="bg-slate-800 p-4 rounded-lg border-l-4 border-pink-400">
+                      <h4 className="font-semibold text-pink-300">support_groups</h4>
+                      <p className="text-sm text-slate-400 mb-2">Community support groups</p>
+                      <ul className="text-xs space-y-1">
+                        <li>• id, name, description</li>
+                        <li>• category, member_count</li>
+                        <li>• created_by, is_private</li>
                       </ul>
                     </div>
                   </div>
@@ -124,65 +187,66 @@ const TechnicalDocumentation = () => {
             </CardContent>
           </Card>
 
-          {/* Security Features */}
+          {/* Advanced Security Features */}
           <Card className="bg-slate-900 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center text-2xl">
                 <Shield className="w-6 h-6 mr-3 text-red-400" />
-                Security & Privacy
+                Advanced Security & Privacy
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Authentication</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">Current Security</h3>
                   <ul className="space-y-2 text-sm">
                     <li>• JWT-based authentication</li>
-                    <li>• Email/password signup</li>
-                    <li>• Role-based access control</li>
-                    <li>• Demo account system</li>
-                    <li>• Automatic profile creation</li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Row Level Security</h3>
-                  <ul className="space-y-2 text-sm">
-                    <li>• User can only access own data</li>
-                    <li>• Public posts visible to all</li>
-                    <li>• Admin oversight capabilities</li>
-                    <li>• Private diary protection</li>
-                    <li>• Report moderation access</li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Privacy Features</h3>
-                  <ul className="space-y-2 text-sm">
-                    <li>• Anonymous posting option</li>
-                    <li>• No tracking cookies</li>
+                    <li>• Row Level Security (RLS)</li>
+                    <li>• Anonymous posting</li>
                     <li>• Encrypted data transmission</li>
-                    <li>• GDPR compliance ready</li>
-                    <li>• Data deletion capabilities</li>
+                    <li>• No tracking cookies</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-3">Enhanced Privacy</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li>• End-to-end encrypted chat</li>
+                    <li>• Temporary anonymous IDs</li>
+                    <li>• Auto data expiration</li>
+                    <li>• VPN-friendly architecture</li>
+                    <li>• Zero-knowledge protocols</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-3">AI Safety</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li>• Crisis detection algorithms</li>
+                    <li>• Harmful content filtering</li>
+                    <li>• Bias monitoring systems</li>
+                    <li>• Transparent AI decisions</li>
+                    <li>• Human oversight protocols</li>
                   </ul>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* API Endpoints */}
+          {/* API & Integration Architecture */}
           <Card className="bg-slate-900 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center text-2xl">
                 <Globe className="w-6 h-6 mr-3 text-cyan-400" />
-                API Integration
+                API & Integration Architecture
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Supabase Client Setup</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">Current Integrations</h3>
                   <div className="bg-slate-800 p-4 rounded-lg">
                     <code className="text-green-300 text-sm">
-                      {`const supabase = createClient(
+                      {`// Supabase Client Configuration
+const supabase = createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
   {
@@ -190,6 +254,10 @@ const TechnicalDocumentation = () => {
       storage: localStorage,
       persistSession: true,
       autoRefreshToken: true,
+    },
+    realtime: {
+      channels: ['posts', 'chat'],
+      heartbeatIntervalMs: 30000
     }
   }
 );`}
@@ -197,58 +265,105 @@ const TechnicalDocumentation = () => {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Key Operations</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">Planned Integrations</h3>
                   <ul className="space-y-2 text-sm">
-                    <li>• User authentication & signup</li>
-                    <li>• Profile management</li>
-                    <li>• Post CRUD operations</li>
-                    <li>• Diary entry management</li>
-                    <li>• Report submission</li>
-                    <li>• Real-time subscriptions</li>
+                    <li><strong>OpenAI API:</strong> Content analysis & moderation</li>
+                    <li><strong>Twilio:</strong> SMS crisis alerts</li>
+                    <li><strong>WebRTC:</strong> Video support sessions</li>
+                    <li><strong>Push Notifications:</strong> PWA alerts</li>
+                    <li><strong>Analytics:</strong> Privacy-focused metrics</li>
+                    <li><strong>Translation API:</strong> Multi-language support</li>
                   </ul>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Performance Features */}
+          {/* Performance & Scalability */}
           <Card className="bg-slate-900 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center text-2xl">
                 <Zap className="w-6 h-6 mr-3 text-yellow-400" />
-                Performance & Optimization
+                Performance & Scalability Plan
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Frontend Optimization</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">Current Optimizations</h3>
                   <ul className="space-y-2 text-sm">
                     <li>• React 18 concurrent features</li>
-                    <li>• Component lazy loading</li>
-                    <li>• Tailwind CSS purging</li>
-                    <li>• Vite hot module replacement</li>
-                    <li>• Tree shaking optimization</li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Data Management</h3>
-                  <ul className="space-y-2 text-sm">
                     <li>• TanStack Query caching</li>
-                    <li>• Optimistic updates</li>
-                    <li>• Background refetching</li>
-                    <li>• Error boundary handling</li>
-                    <li>• Connection state management</li>
+                    <li>• Vite build optimization</li>
+                    <li>• Tailwind CSS purging</li>
+                    <li>• Component lazy loading</li>
                   </ul>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Database Performance</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">Scaling Strategy</h3>
                   <ul className="space-y-2 text-sm">
-                    <li>• PostgreSQL indexing</li>
-                    <li>• Connection pooling</li>
-                    <li>• Query optimization</li>
-                    <li>• Real-time subscriptions</li>
-                    <li>• CDN asset delivery</li>
+                    <li>• Database connection pooling</li>
+                    <li>• CDN for static assets</li>
+                    <li>• Redis for session caching</li>
+                    <li>• Horizontal database scaling</li>
+                    <li>• Load balancer configuration</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-3">Monitoring</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li>• Real-time error tracking</li>
+                    <li>• Performance metrics</li>
+                    <li>• User journey analytics</li>
+                    <li>• Database query monitoring</li>
+                    <li>• Crisis detection alerts</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Implementation Timeline */}
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white text-2xl">Implementation Timeline</CardTitle>
+            </CardHeader>
+            <CardContent className="text-slate-300 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-green-900/30 border border-green-600 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-green-300 mb-2">Phase 1 (Current)</h3>
+                  <ul className="text-sm space-y-1">
+                    <li>✓ Basic posting system</li>
+                    <li>✓ User authentication</li>
+                    <li>✓ Private diary</li>
+                    <li>✓ Admin dashboard</li>
+                  </ul>
+                </div>
+                <div className="bg-blue-900/30 border border-blue-600 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-blue-300 mb-2">Phase 2 (Next)</h3>
+                  <ul className="text-sm space-y-1">
+                    <li>• Real-time chat system</li>
+                    <li>• Post reactions</li>
+                    <li>• Enhanced moderation</li>
+                    <li>• Mood tracking</li>
+                  </ul>
+                </div>
+                <div className="bg-purple-900/30 border border-purple-600 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-purple-300 mb-2">Phase 3 (Future)</h3>
+                  <ul className="text-sm space-y-1">
+                    <li>• AI content analysis</li>
+                    <li>• Support groups</li>
+                    <li>• Crisis detection</li>
+                    <li>• Mobile PWA</li>
+                  </ul>
+                </div>
+                <div className="bg-orange-900/30 border border-orange-600 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-orange-300 mb-2">Phase 4 (Advanced)</h3>
+                  <ul className="text-sm space-y-1">
+                    <li>• Video support sessions</li>
+                    <li>• Multi-language support</li>
+                    <li>• Advanced analytics</li>
+                    <li>• Third-party integrations</li>
                   </ul>
                 </div>
               </div>
@@ -258,29 +373,28 @@ const TechnicalDocumentation = () => {
           {/* Development Setup */}
           <Card className="bg-slate-900 border-slate-700">
             <CardHeader>
-              <CardTitle className="text-white text-2xl">Development Setup</CardTitle>
+              <CardTitle className="text-white text-2xl">Development Setup & Deployment</CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300 space-y-4">
               <div className="bg-slate-800 p-4 rounded-lg">
                 <h3 className="text-lg font-semibold text-white mb-3">Local Development</h3>
                 <div className="space-y-2 text-sm">
                   <div className="bg-slate-700 p-3 rounded">
-                    <code className="text-green-300">npm install</code>
+                    <code className="text-green-300">npm install && npm run dev</code>
                   </div>
-                  <div className="bg-slate-700 p-3 rounded">
-                    <code className="text-green-300">npm run dev</code>
-                  </div>
-                  <p className="text-slate-400 mt-2">Runs on localhost:5173 with hot reloading</p>
+                  <p className="text-slate-400">Runs on localhost:5173 with hot reloading</p>
                 </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Environment Variables</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">Environment Configuration</h3>
                   <div className="bg-slate-800 p-3 rounded text-sm">
                     <code className="text-cyan-300">
-                      VITE_SUPABASE_URL=your_supabase_url<br/>
-                      VITE_SUPABASE_ANON_KEY=your_anon_key
+                      VITE_SUPABASE_URL=https://kejaelgndmtragvcpstc.supabase.co<br/>
+                      VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiI...<br/>
+                      VITE_OPENAI_API_KEY=sk-...<br/>
+                      VITE_TWILIO_ACCOUNT_SID=AC...
                     </code>
                   </div>
                 </div>
