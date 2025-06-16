@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Share2, Shield, Users, Eye, Clock, TrendingUp, Search, BookOpen, User, LogOut } from "lucide-react";
+import { Heart, MessageCircle, Share2, Shield, Users, Eye, Clock, TrendingUp, Search, BookOpen, User, LogOut, Lock } from "lucide-react";
 import PostCreator from "@/components/PostCreator";
 import ConfessionCard from "@/components/ConfessionCard";
 import CategoryFilter from "@/components/CategoryFilter";
@@ -12,8 +12,11 @@ import CommunityStats from "@/components/CommunityStats";
 import CulpritSearch from "@/components/CulpritSearch";
 import AnonymousDiary from "@/components/AnonymousDiary";
 import DepressionHelpline from "@/components/DepressionHelpline";
+import DepressionAnalyzer from "@/components/DepressionAnalyzer";
+import UserDashboard from "@/components/UserDashboard";
 import Footer from "@/components/Footer";
 import AuthModal from "@/components/AuthModal";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -21,6 +24,7 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState("confessions");
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const { toast } = useToast();
 
   // Sample confession data
   const confessions = [
@@ -65,20 +69,48 @@ const Index = () => {
 
   const handleAuth = (userData: any) => {
     setUser(userData);
+    toast({
+      title: "Welcome to TruthSpace!",
+      description: "You can now access all features including posting and your private diary.",
+    });
   };
 
   const handleLogout = () => {
     setUser(null);
+    setCurrentPage("confessions");
+    toast({
+      title: "Logged out",
+      description: "You've been safely logged out. Your anonymity remains protected.",
+    });
+  };
+
+  const handleRestrictedAction = (action: string) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: `Please login to ${action}. All activities remain anonymous to the community.`,
+        variant: "destructive"
+      });
+      setShowAuthModal(true);
+      return false;
+    }
+    return true;
   };
 
   const renderCurrentPage = () => {
     switch (currentPage) {
+      case "dashboard":
+        return user ? <UserDashboard user={user} /> : null;
       case "search":
+        if (!handleRestrictedAction("search for people")) return null;
         return <CulpritSearch />;
       case "diary":
+        if (!handleRestrictedAction("access your private diary")) return null;
         return <AnonymousDiary />;
       case "helpline":
         return <DepressionHelpline />;
+      case "depression-analyzer":
+        return <DepressionAnalyzer />;
       default:
         return (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -86,6 +118,27 @@ const Index = () => {
             <div className="lg:col-span-3">
               {/* Community Stats */}
               <CommunityStats />
+
+              {/* Login Notice for Non-Users */}
+              {!user && (
+                <Card className="bg-amber-900/50 border-amber-600 mb-6">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <Lock className="w-5 h-5 text-amber-400" />
+                      <div>
+                        <p className="text-amber-200 font-medium">Login to unlock all features</p>
+                        <p className="text-amber-300 text-sm">Create an account to post confessions, access your diary, and search our database.</p>
+                      </div>
+                      <Button 
+                        onClick={() => setShowAuthModal(true)}
+                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                      >
+                        Login Now
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Categories and Filters */}
               <div className="mb-8">
@@ -173,8 +226,13 @@ const Index = () => {
                     >
                       Crisis Support Chat
                     </Button>
-                    <Button variant="outline" size="sm" className="w-full justify-start border-slate-600 text-slate-300 hover:bg-slate-800">
-                      Therapy Resources
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full justify-start border-slate-600 text-slate-300 hover:bg-slate-800"
+                      onClick={() => setCurrentPage("depression-analyzer")}
+                    >
+                      AI Depression Analyzer
                     </Button>
                     <Button variant="outline" size="sm" className="w-full justify-start border-slate-600 text-slate-300 hover:bg-slate-800">
                       Legal Advice
@@ -240,7 +298,11 @@ const Index = () => {
               </Button>
               <Button
                 variant="ghost"
-                onClick={() => setCurrentPage("search")}
+                onClick={() => {
+                  if (handleRestrictedAction("access partner check")) {
+                    setCurrentPage("search");
+                  }
+                }}
                 className={currentPage === "search" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
               >
                 <Search className="w-4 h-4 mr-2" />
@@ -248,7 +310,11 @@ const Index = () => {
               </Button>
               <Button
                 variant="ghost"
-                onClick={() => setCurrentPage("diary")}
+                onClick={() => {
+                  if (handleRestrictedAction("access your diary")) {
+                    setCurrentPage("diary");
+                  }
+                }}
                 className={currentPage === "diary" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
               >
                 <BookOpen className="w-4 h-4 mr-2" />
@@ -262,6 +328,16 @@ const Index = () => {
                 <Heart className="w-4 h-4 mr-2" />
                 Support
               </Button>
+              {user && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setCurrentPage("dashboard")}
+                  className={currentPage === "dashboard" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
+              )}
             </div>
 
             <div className="flex items-center space-x-4">
@@ -294,7 +370,7 @@ const Index = () => {
                 </Button>
               )}
 
-              {currentPage === "confessions" && (
+              {(currentPage === "confessions" && user) && (
                 <Button 
                   onClick={() => setShowPostCreator(true)}
                   className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
@@ -314,7 +390,7 @@ const Index = () => {
       <Footer />
 
       {/* Post Creator Modal */}
-      {showPostCreator && (
+      {showPostCreator && user && (
         <PostCreator onClose={() => setShowPostCreator(false)} />
       )}
 

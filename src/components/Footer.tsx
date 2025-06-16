@@ -1,6 +1,7 @@
 
 import { Heart, Shield, Mail, Phone, MapPin, Twitter, Instagram, Facebook } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
@@ -38,11 +39,11 @@ const Footer = () => {
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-white">Support</h4>
             <ul className="space-y-2 text-slate-400">
-              <li><a href="#" className="hover:text-white transition-colors">Crisis Helpline</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Anonymous Chat</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Therapy Resources</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Support Groups</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Safety Planning</a></li>
+              <li><a href="tel:988" className="hover:text-white transition-colors">Crisis Helpline: 988</a></li>
+              <li><a href="https://suicidepreventionlifeline.org/chat/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Anonymous Chat</a></li>
+              <li><a href="https://www.psychologytoday.com/us/therapists" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Therapy Resources</a></li>
+              <li><a href="https://www.nami.org/Support-Education/Support-Groups" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Support Groups</a></li>
+              <li><a href="https://www.samhsa.gov/find-help/national-helpline" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Safety Planning</a></li>
             </ul>
           </div>
 
@@ -50,11 +51,11 @@ const Footer = () => {
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-white">Legal & Safety</h4>
             <ul className="space-y-2 text-slate-400">
-              <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
               <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Community Guidelines</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Report Abuse</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Data Protection</a></li>
+              <li><Link to="/guidelines" className="hover:text-white transition-colors">Community Guidelines</Link></li>
+              <li><a href="mailto:abuse@truthspace.app" className="hover:text-white transition-colors">Report Abuse</a></li>
+              <li><a href="https://gdpr.eu/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Data Protection</a></li>
             </ul>
           </div>
 
@@ -64,11 +65,11 @@ const Footer = () => {
             <div className="space-y-3 text-slate-400">
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4" />
-                <span className="text-sm">support@truthspace.app</span>
+                <a href="mailto:support@truthspace.app" className="text-sm hover:text-white transition-colors">support@truthspace.app</a>
               </div>
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
-                <span className="text-sm">1-800-TRUTH-1</span>
+                <a href="tel:1-800-TRUTH-1" className="text-sm hover:text-white transition-colors">1-800-TRUTH-1</a>
               </div>
               <div className="flex items-center space-x-2">
                 <MapPin className="w-4 h-4" />
@@ -94,9 +95,9 @@ const Footer = () => {
               © 2024 TruthSpace. All rights reserved. Made with ❤️ for healing and truth.
             </div>
             <div className="flex items-center space-x-4 text-sm text-slate-400">
-              <span>Emergency: 988</span>
+              <a href="tel:988" className="hover:text-white transition-colors">Emergency: 988</a>
               <span>•</span>
-              <span>Abuse Hotline: 1-800-799-7233</span>
+              <a href="tel:1-800-799-7233" className="hover:text-white transition-colors">Abuse Hotline: 1-800-799-7233</a>
             </div>
           </div>
         </div>
