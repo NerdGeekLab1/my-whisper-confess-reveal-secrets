@@ -56,7 +56,7 @@ const Index = () => {
         />
       </div>
 
-      <Footer />
+      <Footer setCurrentPage={handlePageChange} />
 
       {/* Post Creator Modal */}
       {showPostCreator && user && (
