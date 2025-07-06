@@ -7,6 +7,7 @@ import AnonymousDiary from "@/components/AnonymousDiary";
 import DepressionHelpline from "@/components/DepressionHelpline";
 import DepressionAnalyzer from "@/components/DepressionAnalyzer";
 import MoodTracker from "@/components/MoodTracker";
+import PartnerLoyaltyScore from "@/components/PartnerLoyaltyScore";
 
 interface PageRouterProps {
   currentPage: string;
@@ -45,6 +46,9 @@ const PageRouter = ({
     case "search":
       if (!handleRestrictedAction("search for people")) return null;
       return <CulpritSearch />;
+    case "loyalty-score":
+      if (!handleRestrictedAction("access loyalty score tool")) return null;
+      return <PartnerLoyaltyScore />;
     case "diary":
       if (!handleRestrictedAction("access your private diary")) return null;
       return <AnonymousDiary />;

@@ -13,7 +13,8 @@ import {
   Calendar,
   Shield,
   Settings,
-  Bell
+  Bell,
+  Star
 } from "lucide-react";
 
 interface UserDashboardProps {
@@ -53,6 +54,12 @@ const UserDashboard = ({ user, setCurrentPage, setShowPostCreator }: UserDashboa
   const handleGetSupport = () => {
     if (setCurrentPage) {
       setCurrentPage("helpline");
+    }
+  };
+
+  const handleLoyaltyScore = () => {
+    if (setCurrentPage) {
+      setCurrentPage("loyalty-score");
     }
   };
 
@@ -176,6 +183,13 @@ const UserDashboard = ({ user, setCurrentPage, setShowPostCreator }: UserDashboa
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
                   Write in Diary
+                </Button>
+                <Button 
+                  onClick={handleLoyaltyScore}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+                >
+                  <Star className="w-4 h-4 mr-2" />
+                  Test Loyalty Score
                 </Button>
                 <Button 
                   onClick={handleGetSupport}

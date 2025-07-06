@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Search, BookOpen, User, LogOut, Shield } from "lucide-react";
+import { Heart, MessageCircle, Search, BookOpen, User, LogOut, Shield, Star } from "lucide-react";
 
 interface HeaderProps {
   currentPage: string;
@@ -65,6 +65,18 @@ const Header = ({
             >
               <Search className="w-4 h-4 mr-2" />
               Partner Check
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                if (handleRestrictedAction("access loyalty score tool")) {
+                  setCurrentPage("loyalty-score");
+                }
+              }}
+              className={currentPage === "loyalty-score" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+            >
+              <Star className="w-4 h-4 mr-2" />
+              Loyalty Score
             </Button>
             <Button
               variant="ghost"
