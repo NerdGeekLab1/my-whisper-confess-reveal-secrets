@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, Lock, User, Shield, UserCheck, ShieldCheck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,80 +18,56 @@ interface AuthModalProps {
   validateDemoCredentials?: (email: string, password: string) => any;
 }
 
-const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin, validateDemoCredentials }: AuthModalProps) => {
+const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin }: AuthModalProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   
-  const [loginForm, setLoginForm] = useState({
-    email: "",
-    password: ""
-  });
-
-  const [signupForm, setSignupForm] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: ""
-  });
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [signupForm, setSignupForm] = useState({ username: "", email: "", password: "", confirmPassword: "" });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Check for demo credentials first
-    if (validateDemoCredentials) {
-      const demoUser = validateDemoCredentials(loginForm.email, loginForm.password);
-      if (demoUser) {
-        onAuth(demoUser);
-        setIsLoading(false);
-        onClose();
-        return;
-      }
-    }
+    const { error } = await supabase.auth.signInWithPassword({
+      email: loginForm.email,
+      password: loginForm.password,
+    });
 
-    // Simulate API call for regular login
-    setTimeout(() => {
-      const user = {
-        id: Date.now(),
-        username: "anonymous_user",
-        email: loginForm.email,
-        role: "user",
-        isVerified: true
-      };
-      onAuth(user);
-      setIsLoading(false);
+    if (error) {
+      toast({ title: "Login failed", description: error.message, variant: "destructive" });
+    } else {
       onClose();
-    }, 1000);
+    }
+    setIsLoading(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (signupForm.password !== signupForm.confirmPassword) {
-      alert("Passwords don't match");
+      toast({ title: "Error", description: "Passwords don't match", variant: "destructive" });
       return;
     }
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const user = {
-        id: Date.now(),
-        username: signupForm.username,
-        email: signupForm.email,
-        role: "user",
-        isVerified: false
-      };
-      onAuth(user);
-      setIsLoading(false);
-      onClose();
-    }, 1000);
-  };
+    const { error } = await supabase.auth.signUp({
+      email: signupForm.email,
+      password: signupForm.password,
+      options: {
+        data: { username: signupForm.username },
+        emailRedirectTo: window.location.origin,
+      }
+    });
 
-  const handleDemoLoginClick = (accountType: 'user' | 'admin') => {
-    if (onDemoLogin) {
-      onDemoLogin(accountType);
+    if (error) {
+      toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Account created!", description: "You can now log in with your credentials." });
+      onClose();
     }
+    setIsLoading(false);
   };
 
   return (
@@ -107,7 +85,7 @@ const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin, validateDemoCredentia
           <h3 className="text-sm font-medium text-slate-300 text-center">Quick Demo Access</h3>
           <div className="grid grid-cols-2 gap-3">
             <Button
-              onClick={() => handleDemoLoginClick('user')}
+              onClick={() => onDemoLogin?.('user')}
               className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-sm"
               size="sm"
             >
@@ -115,7 +93,7 @@ const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin, validateDemoCredentia
               Demo User
             </Button>
             <Button
-              onClick={() => handleDemoLoginClick('admin')}
+              onClick={() => onDemoLogin?.('admin')}
               className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-sm"
               size="sm"
             >
@@ -133,12 +111,8 @@ const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin, validateDemoCredentia
 
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-slate-800">
-            <TabsTrigger value="login" className="text-slate-300 data-[state=active]:text-white">
-              Login
-            </TabsTrigger>
-            <TabsTrigger value="signup" className="text-slate-300 data-[state=active]:text-white">
-              Sign Up
-            </TabsTrigger>
+            <TabsTrigger value="login" className="text-slate-300 data-[state=active]:text-white">Login</TabsTrigger>
+            <TabsTrigger value="signup" className="text-slate-300 data-[state=active]:text-white">Sign Up</TabsTrigger>
           </TabsList>
 
           <TabsContent value="login" className="space-y-4 mt-6">
@@ -147,57 +121,30 @@ const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin, validateDemoCredentia
                 <Label htmlFor="login-email" className="text-slate-300">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={loginForm.email}
+                  <Input id="login-email" type="email" placeholder="Enter your email" value={loginForm.email}
                     onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
-                    className="pl-10 bg-slate-800 border-slate-600 text-white"
-                    required
-                  />
+                    className="pl-10 bg-slate-800 border-slate-600 text-white" required />
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="login-password" className="text-slate-300">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="login-password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={loginForm.password}
-                    onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-                    className="pl-10 pr-10 bg-slate-800 border-slate-600 text-white"
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
+                  <Input id="login-password" type={showPassword ? "text" : "password"} placeholder="Enter your password"
+                    value={loginForm.password} onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
+                    className="pl-10 pr-10 bg-slate-800 border-slate-600 text-white" required />
+                  <Button type="button" variant="ghost" size="sm"
                     className="absolute right-2 top-2 text-slate-400 hover:text-white"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
+                    onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>
-
-              <Button 
-                type="submit" 
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-              >
+              <Button type="submit" disabled={isLoading}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
                 {isLoading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
-
-            <div className="text-center">
-              <Button variant="link" className="text-slate-400 hover:text-white text-sm">
-                Forgot password?
-              </Button>
-            </div>
           </TabsContent>
 
           <TabsContent value="signup" className="space-y-4 mt-6">
@@ -206,80 +153,45 @@ const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin, validateDemoCredentia
                 <Label htmlFor="signup-username" className="text-slate-300">Username</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="signup-username"
-                    type="text"
-                    placeholder="Choose a username"
-                    value={signupForm.username}
+                  <Input id="signup-username" type="text" placeholder="Choose a username" value={signupForm.username}
                     onChange={(e) => setSignupForm({...signupForm, username: e.target.value})}
-                    className="pl-10 bg-slate-800 border-slate-600 text-white"
-                    required
-                  />
+                    className="pl-10 bg-slate-800 border-slate-600 text-white" required />
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="signup-email" className="text-slate-300">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={signupForm.email}
+                  <Input id="signup-email" type="email" placeholder="Enter your email" value={signupForm.email}
                     onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
-                    className="pl-10 bg-slate-800 border-slate-600 text-white"
-                    required
-                  />
+                    className="pl-10 bg-slate-800 border-slate-600 text-white" required />
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="signup-password" className="text-slate-300">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="signup-password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Create a password"
-                    value={signupForm.password}
-                    onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
-                    className="pl-10 pr-10 bg-slate-800 border-slate-600 text-white"
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
+                  <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="Create a password (min 6 chars)"
+                    value={signupForm.password} onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
+                    className="pl-10 pr-10 bg-slate-800 border-slate-600 text-white" required minLength={6} />
+                  <Button type="button" variant="ghost" size="sm"
                     className="absolute right-2 top-2 text-slate-400 hover:text-white"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
+                    onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="signup-confirm" className="text-slate-300">Confirm Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="signup-confirm"
-                    type="password"
-                    placeholder="Confirm your password"
-                    value={signupForm.confirmPassword}
+                  <Input id="signup-confirm" type="password" placeholder="Confirm your password" value={signupForm.confirmPassword}
                     onChange={(e) => setSignupForm({...signupForm, confirmPassword: e.target.value})}
-                    className="pl-10 bg-slate-800 border-slate-600 text-white"
-                    required
-                  />
+                    className="pl-10 bg-slate-800 border-slate-600 text-white" required />
                 </div>
               </div>
-
-              <Button 
-                type="submit" 
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
-              >
+              <Button type="submit" disabled={isLoading}
+                className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600">
                 {isLoading ? "Creating Account..." : "Create Account"}
               </Button>
             </form>

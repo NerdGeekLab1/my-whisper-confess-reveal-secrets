@@ -1,55 +1,92 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
-// Demo accounts
-const DEMO_ACCOUNTS = {
-  user: {
-    email: "user@demo.com",
-    password: "demo123",
-    userData: {
-      id: 1,
-      username: "demo_user",
-      email: "user@demo.com",
-      role: "user",
-      isVerified: true,
-      joinedDate: "2024-01-15",
-      lastActive: "2024-06-16"
-    }
-  },
-  admin: {
-    email: "admin@demo.com",
-    password: "admin123",
-    userData: {
-      id: 2,
-      username: "admin_user",
-      email: "admin@demo.com",
-      role: "admin",
-      isVerified: true,
-      joinedDate: "2024-01-01",
-      lastActive: "2024-06-16"
-    }
-  }
-};
+export interface AppUser {
+  id: string;
+  username: string;
+  email: string;
+  role: "user" | "admin" | "moderator";
+  isVerified: boolean;
+  joinedDate: string;
+  lastActive: string;
+}
 
 export const useAuth = () => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { toast } = useToast();
 
-  const handleAuth = (userData: any) => {
+  const fetchUserProfile = async (authUser: User): Promise<AppUser | null> => {
+    try {
+      // Get profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
+
+      // Get role
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", authUser.id);
+
+      const isAdmin = roleData?.some((r: any) => r.role === "admin") ?? false;
+      const role = isAdmin ? "admin" : "user";
+
+      return {
+        id: authUser.id,
+        username: profile?.username || authUser.email?.split("@")[0] || "anonymous",
+        email: authUser.email || "",
+        role,
+        isVerified: profile?.is_verified || false,
+        joinedDate: profile?.joined_date || new Date().toISOString(),
+        lastActive: new Date().toISOString(),
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const appUser = await fetchUserProfile(session.user);
+        setUser(appUser);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const appUser = await fetchUserProfile(session.user);
+        setUser(appUser);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleAuth = (userData: AppUser) => {
     setUser(userData);
-    const welcomeMessage = userData.role === 'admin' 
+    const welcomeMessage = userData.role === 'admin'
       ? "Welcome Admin! You have full access to all platform features."
-      : "Welcome to TruthSpace! You can now access all features including posting and your private diary.";
-    
+      : "Welcome to TruthSpace! You can now access all features.";
     toast({
       title: userData.role === 'admin' ? "Admin Access Granted" : "Welcome to TruthSpace!",
       description: welcomeMessage,
     });
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     toast({
       title: "Logged out",
@@ -70,24 +107,45 @@ export const useAuth = () => {
     return true;
   };
 
-  const handleDemoLogin = (accountType: 'user' | 'admin') => {
-    const demoAccount = DEMO_ACCOUNTS[accountType];
-    handleAuth(demoAccount.userData);
+  const handleDemoLogin = async (accountType: 'user' | 'admin') => {
+    const creds = accountType === 'admin'
+      ? { email: "admin@demo.com", password: "admin123" }
+      : { email: "user@demo.com", password: "demo123" };
+
+    const { error } = await supabase.auth.signInWithPassword(creds);
+    if (error) {
+      // If sign-in fails, try sign-up first
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: creds.email,
+        password: creds.password,
+        options: { data: { username: accountType === 'admin' ? 'admin_user' : 'demo_user' } }
+      });
+      if (signUpError) {
+        toast({ title: "Login failed", description: signUpError.message, variant: "destructive" });
+        return;
+      }
+      // Try sign in again after signup
+      const { error: retryError } = await supabase.auth.signInWithPassword(creds);
+      if (retryError) {
+        toast({ title: "Login failed", description: "Please try again in a moment.", variant: "destructive" });
+        return;
+      }
+    }
     setShowAuthModal(false);
   };
 
-  const validateDemoCredentials = (email: string, password: string) => {
-    if (email === DEMO_ACCOUNTS.user.email && password === DEMO_ACCOUNTS.user.password) {
-      return DEMO_ACCOUNTS.user.userData;
-    }
-    if (email === DEMO_ACCOUNTS.admin.email && password === DEMO_ACCOUNTS.admin.password) {
-      return DEMO_ACCOUNTS.admin.userData;
+  const validateDemoCredentials = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return null;
+    if (data.user) {
+      return await fetchUserProfile(data.user);
     }
     return null;
   };
 
   return {
     user,
+    loading,
     showAuthModal,
     setShowAuthModal,
     handleAuth,
