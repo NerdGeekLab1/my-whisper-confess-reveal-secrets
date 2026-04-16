@@ -89,7 +89,7 @@ const PartnerLoyaltyScore = () => {
     setIsAnalyzing(true);
 
     // Simulate analysis delay
-    setTimeout(() => {
+    setTimeout(async () => {
       const scores = {
         relationshipDuration: getScoreFromValue(formData.relationshipDuration, 'duration'),
         communicationFrequency: getScoreFromValue(formData.communicationFrequency, 'frequency'),
@@ -569,10 +569,60 @@ const PartnerLoyaltyScore = () => {
               >
                 Test Another Partner
               </Button>
-              <Button variant="outline" className="border-slate-600 text-slate-300">
-                Save Results
+              <Button 
+                variant="outline" 
+                className="border-slate-600 text-slate-300"
+                onClick={() => setShowHistory(!showHistory)}
+              >
+                <History className="w-4 h-4 mr-2" />
+                {showHistory ? "Hide History" : "View History"}
               </Button>
             </div>
+
+            {/* Score History */}
+            {showHistory && savedScores.length > 0 && (
+              <Card className="bg-slate-900 border-slate-700 mt-6">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <History className="w-5 h-5 mr-2 text-blue-400" />
+                    Previous Assessments
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {savedScores.map((score) => (
+                      <div key={score.id} className="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
+                        <div>
+                          <p className="text-white font-medium">{score.partner_name}</p>
+                          <p className="text-slate-400 text-sm">{new Date(score.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <Badge className={
+                            score.overall_score >= 85 ? 'bg-green-500/20 text-green-400' :
+                            score.overall_score >= 70 ? 'bg-blue-500/20 text-blue-400' :
+                            score.overall_score >= 50 ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-red-500/20 text-red-400'
+                          }>
+                            {score.overall_score}/100 — {score.category}
+                          </Badge>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-400 hover:text-red-300"
+                            onClick={async () => {
+                              await supabase.from("loyalty_scores").delete().eq("id", score.id);
+                              fetchSavedScores();
+                            }}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
