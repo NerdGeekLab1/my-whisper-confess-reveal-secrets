@@ -26,20 +26,25 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const [postPage, setPostPage] = useState(0);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const ITEMS_PER_PAGE = 20;
+
   useEffect(() => {
     const fetchAll = async () => {
       const [profilesRes, postsRes, reportsRes] = await Promise.all([
         supabase.from("profiles").select("*"),
-        supabase.from("posts").select("*").order("created_at", { ascending: false }),
+        supabase.from("posts").select("*", { count: "exact" }).order("created_at", { ascending: false }).range(postPage * ITEMS_PER_PAGE, (postPage + 1) * ITEMS_PER_PAGE - 1),
         supabase.from("reports").select("*").order("created_at", { ascending: false }),
       ]);
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (postsRes.data) setPosts(postsRes.data);
+      if (postsRes.count !== null) setTotalPosts(postsRes.count);
       if (reportsRes.data) setReports(reportsRes.data);
       setLoading(false);
     };
     fetchAll();
-  }, []);
+  }, [postPage]);
 
   const handleDeletePost = async (postId: string) => {
     const { error } = await supabase.from("posts").delete().eq("id", postId);
