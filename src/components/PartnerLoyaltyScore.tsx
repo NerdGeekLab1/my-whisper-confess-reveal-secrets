@@ -117,9 +117,26 @@ const PartnerLoyaltyScore = () => {
       setResult(loyaltyResult);
       setIsAnalyzing(false);
 
+      // Auto-save to database
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("loyalty_scores").insert({
+          user_id: user.id,
+          partner_name: formData.partnerName,
+          overall_score: overallScore,
+          category: loyaltyResult.category,
+          breakdown: breakdown as any,
+          strengths: loyaltyResult.strengths,
+          concerns: loyaltyResult.concerns,
+          recommendations: loyaltyResult.recommendations,
+          form_data: formData as any,
+        });
+        fetchSavedScores();
+      }
+
       toast({
         title: "Analysis Complete",
-        description: `Loyalty score calculated for ${formData.partnerName}`,
+        description: `Loyalty score calculated and saved for ${formData.partnerName}`,
       });
     }, 2000);
   };
