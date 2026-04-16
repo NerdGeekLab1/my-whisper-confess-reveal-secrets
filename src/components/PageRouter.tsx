@@ -8,6 +8,7 @@ import DepressionHelpline from "@/components/DepressionHelpline";
 import DepressionAnalyzer from "@/components/DepressionAnalyzer";
 import MoodTracker from "@/components/MoodTracker";
 import PartnerLoyaltyScore from "@/components/PartnerLoyaltyScore";
+import SupportChatbot from "@/components/SupportChatbot";
 
 interface PageRouterProps {
   currentPage: string;
@@ -69,6 +70,9 @@ const PageRouter = ({
       return <DepressionHelpline />;
     case "depression-analyzer":
       return <DepressionAnalyzer />;
+    case "ai-chat":
+      if (!handleRestrictedAction("access AI support chat")) return null;
+      return <SupportChatbot user={user} />;
     default:
       return (
         <ConfessionsPage

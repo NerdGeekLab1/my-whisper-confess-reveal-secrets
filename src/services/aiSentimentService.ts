@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 
 export interface SentimentAnalysis {
   sentiment: 'positive' | 'negative' | 'neutral';
@@ -15,51 +16,67 @@ export interface ModerationResult {
 }
 
 class AISentimentService {
+  // Fallback keywords for offline/error scenarios
   private crisisKeywords = [
     'suicide', 'kill myself', 'end it all', 'not worth living', 'harm myself',
     'give up', 'hopeless', 'worthless', 'nobody cares', 'better off dead'
   ];
 
-  private harmfulKeywords = [
-    'revenge', 'hurt someone', 'make them pay', 'get back at', 'destroy',
-    'hate speech', 'discriminate', 'violence', 'attack'
-  ];
+  async analyzeSentiment(text: string): Promise<SentimentAnalysis> {
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-sentiment', {
+        body: { text, type: 'sentiment' }
+      });
 
-  analyzeSentiment(text: string): SentimentAnalysis {
+      if (error) throw error;
+      return data as SentimentAnalysis;
+    } catch (e) {
+      console.warn('AI sentiment fallback to local analysis:', e);
+      return this.localSentimentFallback(text);
+    }
+  }
+
+  async moderateContent(text: string): Promise<ModerationResult> {
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-sentiment', {
+        body: { text, type: 'moderate' }
+      });
+
+      if (error) throw error;
+      return data as ModerationResult;
+    } catch (e) {
+      console.warn('AI moderation fallback to local analysis:', e);
+      return this.localModerationFallback(text);
+    }
+  }
+
+  private localSentimentFallback(text: string): SentimentAnalysis {
     const lowerText = text.toLowerCase();
-    
-    // Simple sentiment analysis based on keywords
     const positiveWords = ['better', 'hope', 'healing', 'support', 'grateful', 'stronger', 'progress'];
     const negativeWords = ['terrible', 'awful', 'devastated', 'broken', 'lost', 'betrayed', 'hurt'];
     
-    let positiveCount = 0;
-    let negativeCount = 0;
+    let positiveCount = 0, negativeCount = 0;
+    positiveWords.forEach(w => { if (lowerText.includes(w)) positiveCount++; });
+    negativeWords.forEach(w => { if (lowerText.includes(w)) negativeCount++; });
     
-    positiveWords.forEach(word => {
-      if (lowerText.includes(word)) positiveCount++;
-    });
-    
-    negativeWords.forEach(word => {
-      if (lowerText.includes(word)) negativeCount++;
-    });
-    
-    // Determine sentiment
     let sentiment: 'positive' | 'negative' | 'neutral' = 'neutral';
     if (positiveCount > negativeCount) sentiment = 'positive';
     else if (negativeCount > positiveCount) sentiment = 'negative';
     
-    // Crisis risk assessment
-    const crisisMatches = this.crisisKeywords.filter(keyword => 
-      lowerText.includes(keyword)
-    );
-    
+    const crisisMatches = this.crisisKeywords.filter(k => lowerText.includes(k));
     let crisisRisk: 'low' | 'medium' | 'high' = 'low';
-    if (crisisMatches.length > 0) {
-      crisisRisk = crisisMatches.length >= 2 ? 'high' : 'medium';
-    }
+    if (crisisMatches.length >= 2) crisisRisk = 'high';
+    else if (crisisMatches.length > 0) crisisRisk = 'medium';
     
-    // Generate recommendations
-    const recommendations = this.generateRecommendations(sentiment, crisisRisk, lowerText);
+    const recommendations: string[] = [];
+    if (crisisRisk === 'high') {
+      recommendations.push('Crisis intervention resources', 'National Suicide Prevention Lifeline: 988');
+    } else if (crisisRisk === 'medium') {
+      recommendations.push('Mental health support groups', 'Self-care techniques');
+    }
+    if (sentiment === 'negative') {
+      recommendations.push('Mindfulness and meditation resources');
+    }
     
     return {
       sentiment,
@@ -70,58 +87,23 @@ class AISentimentService {
     };
   }
 
-  moderateContent(text: string): ModerationResult {
+  private localModerationFallback(text: string): ModerationResult {
     const lowerText = text.toLowerCase();
-    
-    const flaggedContent = this.harmfulKeywords.filter(keyword => 
-      lowerText.includes(keyword)
-    );
-    
-    const crisisTerms = this.crisisKeywords.filter(keyword => 
-      lowerText.includes(keyword)
-    );
-    
-    const moderationScore = (flaggedContent.length * 0.3) + (crisisTerms.length * 0.2);
+    const harmful = ['revenge', 'hurt someone', 'make them pay', 'hate speech', 'violence', 'attack'];
+    const flagged = harmful.filter(k => lowerText.includes(k));
+    const crisisTerms = this.crisisKeywords.filter(k => lowerText.includes(k));
+    const score = (flagged.length * 0.3) + (crisisTerms.length * 0.2);
     
     let suggestedAction: 'approve' | 'review' | 'reject' = 'approve';
-    if (moderationScore > 0.6) suggestedAction = 'reject';
-    else if (moderationScore > 0.3) suggestedAction = 'review';
+    if (score > 0.6) suggestedAction = 'reject';
+    else if (score > 0.3) suggestedAction = 'review';
     
     return {
       isApproved: suggestedAction === 'approve',
-      flaggedContent: [...flaggedContent, ...crisisTerms],
-      moderationScore,
+      flaggedContent: [...flagged, ...crisisTerms],
+      moderationScore: score,
       suggestedAction
     };
-  }
-
-  private generateRecommendations(
-    sentiment: string, 
-    crisisRisk: string, 
-    text: string
-  ): string[] {
-    const recommendations = [];
-    
-    if (crisisRisk === 'high') {
-      recommendations.push('Crisis intervention resources');
-      recommendations.push('National Suicide Prevention Lifeline: 988');
-      recommendations.push('Professional counseling services');
-    } else if (crisisRisk === 'medium') {
-      recommendations.push('Mental health support groups');
-      recommendations.push('Self-care techniques');
-    }
-    
-    if (sentiment === 'negative') {
-      recommendations.push('Mindfulness and meditation resources');
-      recommendations.push('Community support threads');
-    }
-    
-    if (text.includes('relationship') || text.includes('betrayal')) {
-      recommendations.push('Relationship counseling resources');
-      recommendations.push('Trust rebuilding guides');
-    }
-    
-    return recommendations;
   }
 }
 

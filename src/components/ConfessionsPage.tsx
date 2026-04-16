@@ -1,9 +1,8 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, Clock, TrendingUp, Lock, Loader2 } from "lucide-react";
+import { Heart, Clock, TrendingUp, Lock, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import CommunityStats from "@/components/CommunityStats";
 import CategoryFilter from "@/components/CategoryFilter";
 import ConfessionCard from "@/components/ConfessionCard";
@@ -18,6 +17,8 @@ interface ConfessionsPageProps {
   setCurrentPage: (page: string) => void;
 }
 
+const POSTS_PER_PAGE = 10;
+
 const ConfessionsPage = ({
   user,
   selectedCategory,
@@ -27,57 +28,39 @@ const ConfessionsPage = ({
 }: ConfessionsPageProps) => {
   const [dbPosts, setDbPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchPosts = useCallback(async () => {
+    setLoading(true);
+    const from = page * POSTS_PER_PAGE;
+    const to = from + POSTS_PER_PAGE - 1;
+
+    let query = supabase
+      .from("posts")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (selectedCategory !== "all") {
+      query = query.eq("category", selectedCategory);
+    }
+
+    const { data, count } = await query;
+    if (data) setDbPosts(data);
+    if (count !== null) setTotalCount(count);
+    setLoading(false);
+  }, [page, selectedCategory]);
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      const { data } = await supabase
-        .from("posts")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (data) setDbPosts(data);
-      setLoading(false);
-    };
     fetchPosts();
-  }, []);
+  }, [fetchPosts]);
 
-  // Sample fallback data + DB posts combined
-  const sampleConfessions = [
-    {
-      id: "sample-1",
-      title: "Found out after 3 years together...",
-      content: "I discovered screenshots on their phone. Multiple dating apps, secret conversations. The lies were so elaborate.",
-      category: "long-term",
-      timeAgo: "2 hours ago",
-      reactions: { support: 127, shocked: 89, similar: 43 },
-      comments: 23,
-      isVerified: true,
-      tags: ["dating-apps", "long-relationship", "evidence"]
-    },
-    {
-      id: "sample-2",
-      title: "Wedding was next month...",
-      content: "Bachelor party photos revealed everything. The person I trusted most betrayed me weeks before our wedding.",
-      category: "engagement",
-      timeAgo: "5 hours ago",
-      reactions: { support: 234, shocked: 156, similar: 67 },
-      comments: 45,
-      isVerified: true,
-      tags: ["wedding", "bachelor-party", "warning"]
-    },
-    {
-      id: "sample-3",
-      title: "Mutual friends knew and said nothing",
-      content: "The betrayal wasn't just from my partner. Our entire friend group knew and stayed silent.",
-      category: "friends",
-      timeAgo: "1 day ago",
-      reactions: { support: 178, shocked: 92, similar: 89 },
-      comments: 31,
-      isVerified: false,
-      tags: ["friends", "community", "silence"]
-    }
-  ];
+  useEffect(() => {
+    setPage(0);
+  }, [selectedCategory]);
 
-  const dbConfessions = dbPosts.map(p => ({
+  const confessions = dbPosts.map(p => ({
     id: p.id,
     title: p.title,
     content: p.content,
@@ -86,14 +69,11 @@ const ConfessionsPage = ({
     reactions: { support: 0, shocked: 0, similar: 0 },
     comments: 0,
     isVerified: false,
-    tags: []
+    tags: [],
+    status: p.status
   }));
 
-  const confessions = [...dbConfessions, ...sampleConfessions];
-
-  const filteredConfessions = selectedCategory === "all"
-    ? confessions
-    : confessions.filter(c => c.category === selectedCategory);
+  const totalPages = Math.max(1, Math.ceil(totalCount / POSTS_PER_PAGE));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -126,34 +106,65 @@ const ConfessionsPage = ({
             <Loader2 className="w-8 h-8 text-white animate-spin" />
           </div>
         ) : (
-          <Tabs defaultValue="recent" className="mb-8">
-            <TabsList className="grid w-full grid-cols-3 bg-slate-800 border-slate-700">
-              <TabsTrigger value="recent" className="text-slate-300 data-[state=active]:text-white">
-                <Clock className="w-4 h-4 mr-2" />Recent
-              </TabsTrigger>
-              <TabsTrigger value="trending" className="text-slate-300 data-[state=active]:text-white">
-                <TrendingUp className="w-4 h-4 mr-2" />Trending
-              </TabsTrigger>
-              <TabsTrigger value="supported" className="text-slate-300 data-[state=active]:text-white">
-                <Heart className="w-4 h-4 mr-2" />Most Supported
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="recent" className="space-y-6 mt-6">
-              {filteredConfessions.map((confession) => (
-                <ConfessionCard key={confession.id} confession={confession} />
-              ))}
-            </TabsContent>
-            <TabsContent value="trending" className="space-y-6 mt-6">
-              {filteredConfessions.map((confession) => (
-                <ConfessionCard key={confession.id} confession={confession} />
-              ))}
-            </TabsContent>
-            <TabsContent value="supported" className="space-y-6 mt-6">
-              {filteredConfessions.map((confession) => (
-                <ConfessionCard key={confession.id} confession={confession} />
-              ))}
-            </TabsContent>
-          </Tabs>
+          <>
+            <Tabs defaultValue="recent" className="mb-8">
+              <TabsList className="grid w-full grid-cols-3 bg-slate-800 border-slate-700">
+                <TabsTrigger value="recent" className="text-slate-300 data-[state=active]:text-white">
+                  <Clock className="w-4 h-4 mr-2" />Recent
+                </TabsTrigger>
+                <TabsTrigger value="trending" className="text-slate-300 data-[state=active]:text-white">
+                  <TrendingUp className="w-4 h-4 mr-2" />Trending
+                </TabsTrigger>
+                <TabsTrigger value="supported" className="text-slate-300 data-[state=active]:text-white">
+                  <Heart className="w-4 h-4 mr-2" />Most Supported
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="recent" className="space-y-6 mt-6">
+                {confessions.length === 0 ? (
+                  <p className="text-center text-slate-400 py-8">No confessions yet. Be the first to share your story.</p>
+                ) : confessions.map((confession) => (
+                  <ConfessionCard key={confession.id} confession={confession} />
+                ))}
+              </TabsContent>
+              <TabsContent value="trending" className="space-y-6 mt-6">
+                {confessions.map((confession) => (
+                  <ConfessionCard key={confession.id} confession={confession} />
+                ))}
+              </TabsContent>
+              <TabsContent value="supported" className="space-y-6 mt-6">
+                {confessions.map((confession) => (
+                  <ConfessionCard key={confession.id} confession={confession} />
+                ))}
+              </TabsContent>
+            </Tabs>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center space-x-4 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => setPage(p => p - 1)}
+                  className="border-slate-600 text-slate-300"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />Previous
+                </Button>
+                <span className="text-slate-400 text-sm">
+                  Page {page + 1} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage(p => p + 1)}
+                  className="border-slate-600 text-slate-300"
+                >
+                  Next<ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

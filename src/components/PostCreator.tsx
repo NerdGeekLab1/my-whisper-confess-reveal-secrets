@@ -10,6 +10,7 @@ import { X, Shield, AlertTriangle, Camera, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { aiSentimentService } from "@/services/aiSentimentService";
 
 interface PostCreatorProps {
   onClose: () => void;
@@ -56,19 +57,36 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
       return;
     }
 
+    // Run AI content moderation
+    let postStatus = "approved";
+    try {
+      const moderation = await aiSentimentService.moderateContent(content);
+      if (moderation.suggestedAction === "reject") {
+        toast({ title: "Content Flagged", description: "Your post contains content that violates community guidelines.", variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
+      if (moderation.suggestedAction === "review") {
+        postStatus = "pending";
+        toast({ title: "Under Review", description: "Your post will be visible after moderation review." });
+      }
+    } catch (e) {
+      console.warn("Moderation check failed, defaulting to approved:", e);
+    }
+
     const { error } = await supabase.from("posts").insert({
       user_id: user.id,
       title,
       content,
       category,
       is_anonymous: true,
-      status: "approved",
+      status: postStatus,
     });
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Story shared!", description: "Your anonymous story has been posted." });
+      toast({ title: "Story shared!", description: postStatus === "pending" ? "Your story is under review." : "Your anonymous story has been posted." });
       onClose();
     }
     setIsSubmitting(false);

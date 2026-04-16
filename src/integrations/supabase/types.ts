@@ -47,6 +47,48 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_scores: {
+        Row: {
+          breakdown: Json
+          category: string
+          concerns: string[]
+          created_at: string
+          form_data: Json
+          id: string
+          overall_score: number
+          partner_name: string
+          recommendations: string[]
+          strengths: string[]
+          user_id: string
+        }
+        Insert: {
+          breakdown?: Json
+          category: string
+          concerns?: string[]
+          created_at?: string
+          form_data?: Json
+          id?: string
+          overall_score: number
+          partner_name: string
+          recommendations?: string[]
+          strengths?: string[]
+          user_id: string
+        }
+        Update: {
+          breakdown?: Json
+          category?: string
+          concerns?: string[]
+          created_at?: string
+          form_data?: Json
+          id?: string
+          overall_score?: number
+          partner_name?: string
+          recommendations?: string[]
+          strengths?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           category: string | null

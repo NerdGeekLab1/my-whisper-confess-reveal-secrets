@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, MessageCircle, AlertTriangle, Shield, Search, Eye, Trash2, Ban,
-  CheckCircle, Clock, BarChart3, TrendingUp, Activity, Loader2
+  CheckCircle, Clock, BarChart3, TrendingUp, Activity, Loader2, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -26,20 +26,25 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const [postPage, setPostPage] = useState(0);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const ITEMS_PER_PAGE = 20;
+
   useEffect(() => {
     const fetchAll = async () => {
       const [profilesRes, postsRes, reportsRes] = await Promise.all([
         supabase.from("profiles").select("*"),
-        supabase.from("posts").select("*").order("created_at", { ascending: false }),
+        supabase.from("posts").select("*", { count: "exact" }).order("created_at", { ascending: false }).range(postPage * ITEMS_PER_PAGE, (postPage + 1) * ITEMS_PER_PAGE - 1),
         supabase.from("reports").select("*").order("created_at", { ascending: false }),
       ]);
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (postsRes.data) setPosts(postsRes.data);
+      if (postsRes.count !== null) setTotalPosts(postsRes.count);
       if (reportsRes.data) setReports(reportsRes.data);
       setLoading(false);
     };
     fetchAll();
-  }, []);
+  }, [postPage]);
 
   const handleDeletePost = async (postId: string) => {
     const { error } = await supabase.from("posts").delete().eq("id", postId);
@@ -285,6 +290,17 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                     ))}
                   </TableBody>
                 </Table>
+                {Math.ceil(totalPosts / ITEMS_PER_PAGE) > 1 && (
+                  <div className="flex items-center justify-center space-x-4 mt-4">
+                    <Button variant="outline" size="sm" disabled={postPage === 0} onClick={() => setPostPage(p => p - 1)} className="border-slate-600 text-slate-300">
+                      <ChevronLeft className="w-4 h-4 mr-1" />Previous
+                    </Button>
+                    <span className="text-slate-400 text-sm">Page {postPage + 1} of {Math.ceil(totalPosts / ITEMS_PER_PAGE)}</span>
+                    <Button variant="outline" size="sm" disabled={postPage >= Math.ceil(totalPosts / ITEMS_PER_PAGE) - 1} onClick={() => setPostPage(p => p + 1)} className="border-slate-600 text-slate-300">
+                      Next<ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
