@@ -356,6 +356,10 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="config" className="space-y-6">
+            <AdminConfiguration />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
