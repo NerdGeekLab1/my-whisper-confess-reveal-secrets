@@ -8,10 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, MessageCircle, AlertTriangle, Shield, Search, Eye, Trash2, Ban,
-  CheckCircle, Clock, BarChart3, TrendingUp, Activity, Loader2, ChevronLeft, ChevronRight
+  CheckCircle, Clock, BarChart3, TrendingUp, Activity, Loader2, ChevronLeft, ChevronRight, Settings
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import AdminConfiguration from "@/components/AdminConfiguration";
 
 interface AdminDashboardProps {
   user: any;
@@ -149,11 +150,14 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-5 bg-slate-800">
             <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-white">Overview</TabsTrigger>
-            <TabsTrigger value="users" className="text-slate-300 data-[state=active]:text-white">User Management</TabsTrigger>
-            <TabsTrigger value="content" className="text-slate-300 data-[state=active]:text-white">Content Inventory</TabsTrigger>
-            <TabsTrigger value="reports" className="text-slate-300 data-[state=active]:text-white">Reports & Moderation</TabsTrigger>
+            <TabsTrigger value="users" className="text-slate-300 data-[state=active]:text-white">Users</TabsTrigger>
+            <TabsTrigger value="content" className="text-slate-300 data-[state=active]:text-white">Content</TabsTrigger>
+            <TabsTrigger value="reports" className="text-slate-300 data-[state=active]:text-white">Reports</TabsTrigger>
+            <TabsTrigger value="config" className="text-slate-300 data-[state=active]:text-white">
+              <Settings className="w-4 h-4 mr-1" />Configuration
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -351,6 +355,10 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                 </Table>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="config" className="space-y-6">
+            <AdminConfiguration />
           </TabsContent>
         </Tabs>
       </div>

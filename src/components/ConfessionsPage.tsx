@@ -60,6 +60,19 @@ const ConfessionsPage = ({
     setPage(0);
   }, [selectedCategory]);
 
+  // Realtime: refetch when posts change
+  useEffect(() => {
+    const channel = supabase
+      .channel("posts-feed")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "posts" },
+        () => { fetchPosts(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchPosts]);
+
   const confessions = dbPosts.map(p => ({
     id: p.id,
     title: p.title,

@@ -112,24 +112,23 @@ export const useAuth = () => {
       ? { email: "admin@demo.com", password: "admin123" }
       : { email: "user@demo.com", password: "demo123" };
 
-    const { error } = await supabase.auth.signInWithPassword(creds);
+    let { error } = await supabase.auth.signInWithPassword(creds);
+
     if (error) {
-      // If sign-in fails, try sign-up first
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: creds.email,
-        password: creds.password,
-        options: { data: { username: accountType === 'admin' ? 'admin_user' : 'demo_user' } }
-      });
-      if (signUpError) {
-        toast({ title: "Login failed", description: signUpError.message, variant: "destructive" });
-        return;
+      // Demo accounts may not exist yet — seed them via edge function
+      toast({ title: "Setting up demo account...", description: "One moment please." });
+      try {
+        await supabase.functions.invoke("seed-demo");
+      } catch (seedErr) {
+        console.error("seed-demo failed", seedErr);
       }
-      // Try sign in again after signup
-      const { error: retryError } = await supabase.auth.signInWithPassword(creds);
-      if (retryError) {
-        toast({ title: "Login failed", description: "Please try again in a moment.", variant: "destructive" });
-        return;
-      }
+      const retry = await supabase.auth.signInWithPassword(creds);
+      error = retry.error;
+    }
+
+    if (error) {
+      toast({ title: "Demo login failed", description: error.message, variant: "destructive" });
+      return;
     }
     setShowAuthModal(false);
   };
