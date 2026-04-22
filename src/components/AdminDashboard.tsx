@@ -80,20 +80,6 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     }
   };
 
-  const handleResolveReport = async (reportId: string) => {
-    const { error } = await supabase.from("reports").update({ status: "resolved" }).eq("id", reportId);
-    if (!error) {
-      await logAdminAction({
-        actionType: "report_resolve",
-        targetTable: "reports",
-        targetId: reportId,
-        summary: `Resolved report ${reportId.slice(0, 8)}`,
-      });
-      setReports(reports.map(r => r.id === reportId ? { ...r, status: "resolved" } : r));
-      toast({ title: "Report resolved" });
-    }
-  };
-
   const filteredProfiles = profiles.filter(p =>
     (p.username || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
     (p.email || "").toLowerCase().includes(searchTerm.toLowerCase())
