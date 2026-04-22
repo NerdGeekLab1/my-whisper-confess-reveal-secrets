@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, Clock, TrendingUp, Lock, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, Clock, TrendingUp, Lock, Loader2, ArrowDown } from "lucide-react";
 import CommunityStats from "@/components/CommunityStats";
 import CategoryFilter from "@/components/CategoryFilter";
 import ConfessionCard from "@/components/ConfessionCard";
@@ -18,61 +18,83 @@ interface ConfessionsPageProps {
   setCurrentPage: (page: string) => void;
 }
 
-const POSTS_PER_PAGE = 10;
+const PAGE_SIZE = 10;
 
 const ConfessionsPage = ({
   user,
   selectedCategory,
   setSelectedCategory,
   setShowAuthModal,
-  setCurrentPage
+  setCurrentPage,
 }: ConfessionsPageProps) => {
-  const [dbPosts, setDbPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
-  const newestPostIdRef = useRef<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const newestCreatedAtRef = useRef<string | null>(null);
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const topRef = useRef<HTMLDivElement | null>(null);
 
-  const scrollToTop = useCallback(() => {
-    setPage(0);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  // Cursor-based fetch: pass `before` (created_at) to load older items.
+  const fetchPage = useCallback(
+    async (before: string | null) => {
+      let query = supabase
+        .from("posts")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(PAGE_SIZE);
 
-  const fetchPosts = useCallback(async () => {
-    setLoading(true);
-    const from = page * POSTS_PER_PAGE;
-    const to = from + POSTS_PER_PAGE - 1;
-
-    let query = supabase
-      .from("posts")
-      .select("*", { count: "exact" })
-      .order("created_at", { ascending: false })
-      .range(from, to);
-
-    if (selectedCategory !== "all") {
-      query = query.eq("category", selectedCategory);
-    }
-
-    const { data, count } = await query;
-    if (data) {
-      setDbPosts(data);
-      if (data[0]?.id) {
-        newestPostIdRef.current = data[0].id;
+      if (selectedCategory !== "all") {
+        query = query.eq("category", selectedCategory);
       }
-    }
-    if (count !== null) setTotalCount(count);
+      if (before) {
+        query = query.lt("created_at", before);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.warn("posts fetch error", error);
+        return [];
+      }
+      return data ?? [];
+    },
+    [selectedCategory]
+  );
+
+  const loadInitial = useCallback(async () => {
+    setLoading(true);
+    seenIdsRef.current = new Set();
+    const data = await fetchPage(null);
+    data.forEach((p: any) => seenIdsRef.current.add(p.id));
+    setPosts(data);
+    setHasMore(data.length === PAGE_SIZE);
+    if (data[0]?.created_at) newestCreatedAtRef.current = data[0].created_at;
     setLoading(false);
-  }, [page, selectedCategory]);
+  }, [fetchPage]);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const oldest = posts[posts.length - 1]?.created_at ?? null;
+    const data = await fetchPage(oldest);
+    const fresh = data.filter((p: any) => !seenIdsRef.current.has(p.id));
+    fresh.forEach((p: any) => seenIdsRef.current.add(p.id));
+    setPosts((prev) => [...prev, ...fresh]);
+    setHasMore(data.length === PAGE_SIZE);
+    setLoadingMore(false);
+  }, [fetchPage, hasMore, loadingMore, posts]);
+
+  // Reload from top when category changes
   useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+    loadInitial();
+  }, [loadInitial]);
 
-  useEffect(() => {
-    setPage(0);
-  }, [selectedCategory]);
+  const scrollToTop = useCallback(async () => {
+    await loadInitial();
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [loadInitial]);
 
-  // Realtime: refetch when posts change
+  // Realtime: prepend new approved posts and toast
   useEffect(() => {
     const channel = supabase
       .channel("posts-feed")
@@ -80,27 +102,37 @@ const ConfessionsPage = ({
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "posts" },
         (payload) => {
-          const incomingPost = payload.new as { id?: string; title?: string; category?: string | null };
-          const matchesCategory = selectedCategory === "all" || incomingPost.category === selectedCategory;
+          const p = payload.new as any;
+          if (!p?.id || seenIdsRef.current.has(p.id)) return;
 
-          if (matchesCategory && incomingPost.id && incomingPost.id !== newestPostIdRef.current) {
-            toast("New confession posted", {
-              description: incomingPost.title || "A new story was shared with the community.",
-              action: {
-                label: "View",
-                onClick: scrollToTop,
+          const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
+          const isVisible = p.status === "approved" || (user && p.user_id === user.id);
+          if (!matchesCategory || !isVisible) return;
+
+          seenIdsRef.current.add(p.id);
+          if (p.created_at) newestCreatedAtRef.current = p.created_at;
+
+          // Prepend so the new item is reachable as the user scrolls or via "View".
+          setPosts((prev) => [p, ...prev]);
+
+          toast("New confession posted", {
+            description: p.title || "A new story was shared with the community.",
+            action: {
+              label: "View",
+              onClick: () => {
+                topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
               },
-            });
-          }
-
-          fetchPosts();
+            },
+          });
         }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchPosts, scrollToTop, selectedCategory]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedCategory, user]);
 
-  const confessions = dbPosts.map(p => ({
+  const confessions = posts.map((p) => ({
     id: p.id,
     title: p.title,
     content: p.content,
@@ -110,14 +142,12 @@ const ConfessionsPage = ({
     comments: 0,
     isVerified: false,
     tags: [],
-    status: p.status
+    status: p.status,
   }));
-
-  const totalPages = Math.max(1, Math.ceil(totalCount / POSTS_PER_PAGE));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-      <div className="lg:col-span-3">
+      <div className="lg:col-span-3" ref={topRef}>
         <CommunityStats />
 
         {!user && (
@@ -162,47 +192,37 @@ const ConfessionsPage = ({
               <TabsContent value="recent" className="space-y-6 mt-6">
                 {confessions.length === 0 ? (
                   <p className="text-center text-slate-400 py-8">No confessions yet. Be the first to share your story.</p>
-                ) : confessions.map((confession) => (
-                  <ConfessionCard key={confession.id} confession={confession} />
-                ))}
+                ) : (
+                  confessions.map((c) => <ConfessionCard key={c.id} confession={c} />)
+                )}
               </TabsContent>
               <TabsContent value="trending" className="space-y-6 mt-6">
-                {confessions.map((confession) => (
-                  <ConfessionCard key={confession.id} confession={confession} />
-                ))}
+                {confessions.map((c) => <ConfessionCard key={c.id} confession={c} />)}
               </TabsContent>
               <TabsContent value="supported" className="space-y-6 mt-6">
-                {confessions.map((confession) => (
-                  <ConfessionCard key={confession.id} confession={confession} />
-                ))}
+                {confessions.map((c) => <ConfessionCard key={c.id} confession={c} />)}
               </TabsContent>
             </Tabs>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center space-x-4 mt-6">
+            {/* Cursor pagination — Load more */}
+            {hasMore && confessions.length > 0 && (
+              <div className="flex justify-center mt-6">
                 <Button
                   variant="outline"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => setPage(p => p - 1)}
+                  onClick={loadMore}
+                  disabled={loadingMore}
                   className="border-slate-600 text-slate-300"
                 >
-                  <ChevronLeft className="w-4 h-4 mr-1" />Previous
-                </Button>
-                <span className="text-slate-400 text-sm">
-                  Page {page + 1} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage(p => p + 1)}
-                  className="border-slate-600 text-slate-300"
-                >
-                  Next<ChevronRight className="w-4 h-4 ml-1" />
+                  {loadingMore ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Loading...</>
+                  ) : (
+                    <><ArrowDown className="w-4 h-4 mr-2" />Load older confessions</>
+                  )}
                 </Button>
               </div>
+            )}
+            {!hasMore && confessions.length > 0 && (
+              <p className="text-center text-slate-500 text-sm mt-6">You've reached the end of the feed.</p>
             )}
           </>
         )}
