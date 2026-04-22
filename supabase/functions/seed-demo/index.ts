@@ -1,4 +1,5 @@
 // Seed demo users (user@demo.com / admin@demo.com) and sample data
+// Pass { reset: true } to wipe existing demo posts/diary first.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -59,6 +60,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    let body: { reset?: boolean } = {};
+    try { body = await req.json(); } catch { /* no body */ }
+    const reset = body.reset === true;
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
@@ -71,7 +76,6 @@ Deno.serve(async (req) => {
     const created: Record<string, string> = {};
 
     for (const acc of accounts) {
-      // Try to create user — if exists, fetch
       let userId: string | null = null;
       const { data: createData, error: createErr } = await admin.auth.admin.createUser({
         email: acc.email,
@@ -86,16 +90,21 @@ Deno.serve(async (req) => {
       if (createData?.user) {
         userId = createData.user.id;
       } else {
-        // Look up existing user
         const { data: list } = await admin.auth.admin.listUsers();
         const existing = list?.users.find((u: any) => u.email === acc.email);
-        if (existing) userId = existing.id;
+        if (existing) {
+          userId = existing.id;
+          // Reset the password so demo login is reliable even if it drifted
+          await admin.auth.admin.updateUserById(existing.id, {
+            password: acc.password,
+            email_confirm: true,
+          });
+        }
       }
 
       if (!userId) continue;
       created[acc.email] = userId;
 
-      // Ensure profile exists
       await admin.from("profiles").upsert({
         id: userId,
         email: acc.email,
@@ -104,7 +113,6 @@ Deno.serve(async (req) => {
         joined_date: new Date().toISOString(),
       }, { onConflict: "id" });
 
-      // Ensure role
       if (acc.role === "admin") {
         await admin.from("user_roles").upsert(
           { user_id: userId, role: "admin" },
@@ -119,9 +127,16 @@ Deno.serve(async (req) => {
 
     const demoUserId = created["user@demo.com"];
 
-    // Seed posts (only if posts table is empty-ish)
+    // Reset wipes only demo-user-owned posts + diary (preserves real user content)
+    if (reset && demoUserId) {
+      await admin.from("posts").delete().eq("user_id", demoUserId);
+      await admin.from("diary_entries").delete().eq("user_id", demoUserId);
+    }
+
+    // Seed posts
     const { count: existingPosts } = await admin.from("posts").select("id", { count: "exact", head: true });
-    if (demoUserId && (existingPosts ?? 0) < 3) {
+    let postsSeeded = false;
+    if (demoUserId && (reset || (existingPosts ?? 0) < 3)) {
       const rows = SAMPLE_POSTS.map((p) => ({
         ...p,
         user_id: demoUserId,
@@ -129,23 +144,26 @@ Deno.serve(async (req) => {
         status: "approved",
       }));
       await admin.from("posts").insert(rows);
+      postsSeeded = true;
     }
 
     // Seed diary
+    let diarySeeded = false;
     if (demoUserId) {
       const { count: existingDiary } = await admin
         .from("diary_entries")
         .select("id", { count: "exact", head: true })
         .eq("user_id", demoUserId);
-      if ((existingDiary ?? 0) === 0) {
+      if (reset || (existingDiary ?? 0) === 0) {
         await admin.from("diary_entries").insert(
           SAMPLE_DIARY.map((d) => ({ ...d, user_id: demoUserId, is_private: true }))
         );
+        diarySeeded = true;
       }
     }
 
     return new Response(
-      JSON.stringify({ success: true, created, postsSeeded: (existingPosts ?? 0) < 3 }),
+      JSON.stringify({ success: true, reset, created, postsSeeded, diarySeeded }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
