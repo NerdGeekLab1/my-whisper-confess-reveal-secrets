@@ -241,7 +241,32 @@ const AdminConfiguration = () => {
           Manage API keys for AI, payments, email, messaging and global app settings. Secret values are visible only to admins.
         </p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
+        <div className="p-4 rounded-lg border border-amber-700/40 bg-amber-950/30 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <p className="text-amber-200 font-medium flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" /> Reset demo data
+            </p>
+            <p className="text-xs text-amber-300/80 mt-1">
+              Recreates demo accounts, wipes demo-user posts &amp; diary, and reseeds sample confessions. Real user data is untouched.
+            </p>
+            {resetSummary && (
+              <p className={`text-xs mt-2 flex items-center gap-1 ${resetState === "success" ? "text-green-400" : resetState === "error" ? "text-red-400" : "text-slate-300"}`}>
+                {resetState === "success" && <CheckCircle2 className="w-3 h-3" />}
+                {resetSummary}
+              </p>
+            )}
+          </div>
+          <Button
+            onClick={handleResetDemo}
+            disabled={resetState === "running"}
+            className="bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            {resetState === "running" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+            Reset demo data
+          </Button>
+        </div>
+
         <Tabs defaultValue={categories[0] || "general"}>
           <TabsList className="bg-slate-800 flex flex-wrap h-auto">
             {categories.map((cat) => {
