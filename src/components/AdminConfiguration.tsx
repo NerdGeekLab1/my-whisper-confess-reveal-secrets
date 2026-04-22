@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff, Save, Loader2, Settings, Key, CreditCard, Mail, MessageSquare, Brain, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Save, Loader2, Settings, Key, CreditCard, Mail, MessageSquare, Brain, Plus, Trash2, RefreshCw, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -37,7 +37,50 @@ const AdminConfiguration = () => {
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [edited, setEdited] = useState<Record<string, any>>({});
   const [newKey, setNewKey] = useState({ key: "", value: "", category: "general", description: "", is_secret: false });
+  const [resetState, setResetState] = useState<"idle" | "running" | "success" | "error">("idle");
+  const [resetSummary, setResetSummary] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const handleResetDemo = async () => {
+    if (!confirm("Reset demo data?\n\nThis will:\n• Re-create user@demo.com / admin@demo.com\n• Wipe demo-user posts & diary\n• Reseed sample confessions\n\nReal user data is NOT touched.")) return;
+    setResetState("running");
+    setResetSummary(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("seed-demo", { body: { reset: true } });
+      if (error) throw error;
+
+      // Verify by signing into demo user briefly to confirm credentials work
+      const verify = await supabase.auth.signInWithPassword({ email: "user@demo.com", password: "demo123" });
+      let verifyOk = !verify.error;
+      let postCount = 0;
+      if (verifyOk) {
+        const { count } = await supabase
+          .from("posts")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "approved");
+        postCount = count ?? 0;
+        // Sign back out so admin session is restored on next reload; but admin stays logged in via current session.
+        // We do NOT sign out here because that would log the admin out too.
+      }
+
+      const summary = `Demo reset complete. Login OK: ${verifyOk ? "yes" : "no"}. Approved posts: ${postCount}.`;
+      setResetSummary(summary);
+      setResetState(verifyOk ? "success" : "error");
+
+      await logAdminAction({
+        actionType: "demo_reset",
+        targetTable: "posts",
+        summary,
+        metadata: { ...(data || {}), verifyOk, postCount },
+      });
+
+      toast({ title: "Demo data reset", description: summary });
+    } catch (e: any) {
+      setResetState("error");
+      setResetSummary(e?.message || "Reset failed");
+      toast({ title: "Reset failed", description: e?.message, variant: "destructive" });
+    }
+  };
 
   const load = async () => {
     setLoading(true);
