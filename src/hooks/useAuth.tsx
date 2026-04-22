@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -20,8 +20,22 @@ export const useAuth = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { toast } = useToast();
 
+  const ensureCurrentUserSetup = useCallback(async (authUser: User) => {
+    try {
+      await supabase.rpc("ensure_current_user_setup", {
+        _user_id: authUser.id,
+        _email: authUser.email ?? "",
+        _username: authUser.user_metadata?.username ?? null,
+      });
+    } catch (error) {
+      console.warn("ensure_current_user_setup failed", error);
+    }
+  }, []);
+
   const fetchUserProfile = async (authUser: User): Promise<AppUser | null> => {
     try {
+      await ensureCurrentUserSetup(authUser);
+
       // Get profile
       const { data: profile } = await supabase
         .from("profiles")
@@ -72,7 +86,7 @@ export const useAuth = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [ensureCurrentUserSetup]);
 
   const handleAuth = (userData: AppUser) => {
     setUser(userData);
@@ -112,25 +126,33 @@ export const useAuth = () => {
       ? { email: "admin@demo.com", password: "admin123" }
       : { email: "user@demo.com", password: "demo123" };
 
-    let { error } = await supabase.auth.signInWithPassword(creds);
+    toast({ title: "Preparing demo access", description: "Syncing demo account and sample data." });
 
-    if (error) {
-      // Demo accounts may not exist yet — seed them via edge function
-      toast({ title: "Setting up demo account...", description: "One moment please." });
-      try {
-        await supabase.functions.invoke("seed-demo");
-      } catch (seedErr) {
-        console.error("seed-demo failed", seedErr);
+    try {
+      await supabase.functions.invoke("seed-demo");
+    } catch (seedErr) {
+      console.error("seed-demo failed", seedErr);
+    }
+
+    let error = null as any;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await supabase.auth.signInWithPassword(creds);
+      error = response.error;
+
+      if (!error && response.data.user) {
+        await ensureCurrentUserSetup(response.data.user);
+        setShowAuthModal(false);
+        return;
       }
-      const retry = await supabase.auth.signInWithPassword(creds);
-      error = retry.error;
+
+      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
     }
 
     if (error) {
       toast({ title: "Demo login failed", description: error.message, variant: "destructive" });
       return;
     }
-    setShowAuthModal(false);
   };
 
   const validateDemoCredentials = async (email: string, password: string) => {

@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action_type: string
+          actor_user_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          summary: string
+          target_id: string | null
+          target_table: string
+        }
+        Insert: {
+          action_type: string
+          actor_user_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          summary: string
+          target_id?: string | null
+          target_table: string
+        }
+        Update: {
+          action_type?: string
+          actor_user_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          summary?: string
+          target_id?: string | null
+          target_table?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           category: string
@@ -258,6 +291,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ensure_current_user_setup: {
+        Args: { _email: string; _user_id: string; _username?: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
