@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AdminConfiguration from "@/components/AdminConfiguration";
 import AdminAuditLog from "@/components/AdminAuditLog";
+import ReviewReportModal from "@/components/ReviewReportModal";
 import { logAdminAction } from "@/lib/adminAudit";
 
 interface AdminDashboardProps {
@@ -31,6 +32,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
 
   const [postPage, setPostPage] = useState(0);
   const [totalPosts, setTotalPosts] = useState(0);
+  const [reviewReportId, setReviewReportId] = useState<string | null>(null);
   const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
@@ -75,20 +77,6 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
       });
       setPosts(posts.map(p => p.id === postId ? { ...p, status } : p));
       toast({ title: `Post ${status}` });
-    }
-  };
-
-  const handleResolveReport = async (reportId: string) => {
-    const { error } = await supabase.from("reports").update({ status: "resolved" }).eq("id", reportId);
-    if (!error) {
-      await logAdminAction({
-        actionType: "report_resolve",
-        targetTable: "reports",
-        targetId: reportId,
-        summary: `Resolved report ${reportId.slice(0, 8)}`,
-      });
-      setReports(reports.map(r => r.id === reportId ? { ...r, status: "resolved" } : r));
-      toast({ title: "Report resolved" });
     }
   };
 
@@ -363,11 +351,17 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                           }>{report.status}</Badge>
                         </TableCell>
                         <TableCell>
-                          {report.status !== 'resolved' && (
-                            <Button size="sm" variant="outline" className="border-green-600 text-green-400"
-                              onClick={() => handleResolveReport(report.id)}>
-                              <CheckCircle className="w-3 h-3 mr-1" />Resolve
+                          {report.status === 'pending' || report.status === 'investigating' ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-blue-600 text-blue-400"
+                              onClick={() => setReviewReportId(report.id)}
+                            >
+                              <Eye className="w-3 h-3 mr-1" />Review
                             </Button>
+                          ) : (
+                            <span className="text-xs text-slate-500">Closed</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -389,6 +383,15 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
             <AdminAuditLog />
           </TabsContent>
         </Tabs>
+
+        <ReviewReportModal
+          reportId={reviewReportId}
+          open={!!reviewReportId}
+          onClose={() => setReviewReportId(null)}
+          onResolved={(id) => {
+            setReports(prev => prev.map(r => r.id === id ? { ...r, status: 'resolved' } : r));
+          }}
+        />
       </div>
     </div>
   );
