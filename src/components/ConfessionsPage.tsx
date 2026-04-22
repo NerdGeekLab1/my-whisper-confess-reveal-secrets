@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import CategoryFilter from "@/components/CategoryFilter";
 import ConfessionCard from "@/components/ConfessionCard";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/sonner";
 
 interface ConfessionsPageProps {
   user: any;
@@ -30,6 +31,12 @@ const ConfessionsPage = ({
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const newestPostIdRef = useRef<string | null>(null);
+
+  const scrollToTop = useCallback(() => {
+    setPage(0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
@@ -47,7 +54,12 @@ const ConfessionsPage = ({
     }
 
     const { data, count } = await query;
-    if (data) setDbPosts(data);
+    if (data) {
+      setDbPosts(data);
+      if (data[0]?.id) {
+        newestPostIdRef.current = data[0].id;
+      }
+    }
     if (count !== null) setTotalCount(count);
     setLoading(false);
   }, [page, selectedCategory]);
@@ -66,12 +78,27 @@ const ConfessionsPage = ({
       .channel("posts-feed")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "posts" },
-        () => { fetchPosts(); }
+        { event: "INSERT", schema: "public", table: "posts" },
+        (payload) => {
+          const incomingPost = payload.new as { id?: string; title?: string; category?: string | null };
+          const matchesCategory = selectedCategory === "all" || incomingPost.category === selectedCategory;
+
+          if (matchesCategory && incomingPost.id && incomingPost.id !== newestPostIdRef.current) {
+            toast("New confession posted", {
+              description: incomingPost.title || "A new story was shared with the community.",
+              action: {
+                label: "View",
+                onClick: scrollToTop,
+              },
+            });
+          }
+
+          fetchPosts();
+        }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetchPosts]);
+  }, [fetchPosts, scrollToTop, selectedCategory]);
 
   const confessions = dbPosts.map(p => ({
     id: p.id,
