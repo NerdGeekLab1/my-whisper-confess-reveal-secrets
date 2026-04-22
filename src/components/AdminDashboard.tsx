@@ -8,11 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, MessageCircle, AlertTriangle, Shield, Search, Eye, Trash2, Ban,
-  CheckCircle, Clock, BarChart3, TrendingUp, Activity, Loader2, ChevronLeft, ChevronRight, Settings
+  CheckCircle, Clock, BarChart3, TrendingUp, Activity, Loader2, ChevronLeft, ChevronRight, Settings, ScrollText
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AdminConfiguration from "@/components/AdminConfiguration";
+import AdminAuditLog from "@/components/AdminAuditLog";
+import { logAdminAction } from "@/lib/adminAudit";
 
 interface AdminDashboardProps {
   user: any;
@@ -50,6 +52,12 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const handleDeletePost = async (postId: string) => {
     const { error } = await supabase.from("posts").delete().eq("id", postId);
     if (!error) {
+      await logAdminAction({
+        actionType: "post_delete",
+        targetTable: "posts",
+        targetId: postId,
+        summary: `Deleted post ${postId.slice(0, 8)}`,
+      });
       setPosts(posts.filter(p => p.id !== postId));
       toast({ title: "Post deleted" });
     }
@@ -58,6 +66,13 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const handleUpdatePostStatus = async (postId: string, status: string) => {
     const { error } = await supabase.from("posts").update({ status }).eq("id", postId);
     if (!error) {
+      await logAdminAction({
+        actionType: "post_status_update",
+        targetTable: "posts",
+        targetId: postId,
+        summary: `Set post ${postId.slice(0, 8)} to ${status}`,
+        metadata: { status },
+      });
       setPosts(posts.map(p => p.id === postId ? { ...p, status } : p));
       toast({ title: `Post ${status}` });
     }
@@ -66,6 +81,12 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const handleResolveReport = async (reportId: string) => {
     const { error } = await supabase.from("reports").update({ status: "resolved" }).eq("id", reportId);
     if (!error) {
+      await logAdminAction({
+        actionType: "report_resolve",
+        targetTable: "reports",
+        targetId: reportId,
+        summary: `Resolved report ${reportId.slice(0, 8)}`,
+      });
       setReports(reports.map(r => r.id === reportId ? { ...r, status: "resolved" } : r));
       toast({ title: "Report resolved" });
     }
@@ -150,11 +171,14 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-6 bg-slate-800">
             <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-white">Overview</TabsTrigger>
             <TabsTrigger value="users" className="text-slate-300 data-[state=active]:text-white">Users</TabsTrigger>
             <TabsTrigger value="content" className="text-slate-300 data-[state=active]:text-white">Content</TabsTrigger>
             <TabsTrigger value="reports" className="text-slate-300 data-[state=active]:text-white">Reports</TabsTrigger>
+            <TabsTrigger value="audit" className="text-slate-300 data-[state=active]:text-white">
+              <ScrollText className="w-4 h-4 mr-1" />Audit Log
+            </TabsTrigger>
             <TabsTrigger value="config" className="text-slate-300 data-[state=active]:text-white">
               <Settings className="w-4 h-4 mr-1" />Configuration
             </TabsTrigger>
@@ -359,6 +383,10 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
 
           <TabsContent value="config" className="space-y-6">
             <AdminConfiguration />
+          </TabsContent>
+
+          <TabsContent value="audit" className="space-y-6">
+            <AdminAuditLog />
           </TabsContent>
         </Tabs>
       </div>
