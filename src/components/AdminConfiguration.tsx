@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, EyeOff, Save, Loader2, Settings, Key, CreditCard, Mail, MessageSquare, Brain, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { logAdminAction } from "@/lib/adminAudit";
 
 interface AppSetting {
   id: string;
@@ -65,6 +66,13 @@ const AdminConfiguration = () => {
     if (error) {
       toast({ title: "Save failed", description: error.message, variant: "destructive" });
     } else {
+      await logAdminAction({
+        actionType: "config_update",
+        targetTable: "app_settings",
+        targetId: setting.id,
+        summary: `Updated ${setting.key}`,
+        metadata: { key: setting.key, category: setting.category },
+      });
       toast({ title: "Saved", description: `${setting.key} updated` });
       setEdited(prev => { const c = { ...prev }; delete c[setting.id]; return c; });
       load();
@@ -78,6 +86,13 @@ const AdminConfiguration = () => {
     if (error) {
       toast({ title: "Delete failed", description: error.message, variant: "destructive" });
     } else {
+      await logAdminAction({
+        actionType: "config_delete",
+        targetTable: "app_settings",
+        targetId: id,
+        summary: `Deleted ${key}`,
+        metadata: { key },
+      });
       toast({ title: "Deleted", description: key });
       load();
     }
@@ -95,6 +110,12 @@ const AdminConfiguration = () => {
     if (error) {
       toast({ title: "Add failed", description: error.message, variant: "destructive" });
     } else {
+      await logAdminAction({
+        actionType: "config_create",
+        targetTable: "app_settings",
+        summary: `Added ${newKey.key.toUpperCase().replace(/\s+/g, "_")}`,
+        metadata: { key: newKey.key, category: newKey.category, is_secret: newKey.is_secret },
+      });
       toast({ title: "Setting added", description: newKey.key });
       setNewKey({ key: "", value: "", category: "general", description: "", is_secret: false });
       load();
