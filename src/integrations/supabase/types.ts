@@ -291,6 +291,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ensure_current_user_setup: {
+        Args: { _email: string; _user_id: string; _username?: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
