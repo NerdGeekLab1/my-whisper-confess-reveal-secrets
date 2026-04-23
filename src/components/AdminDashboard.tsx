@@ -249,7 +249,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-300">Open Reports</span>
-                    <span className="text-white font-bold">{reports.filter(r => r.status === 'pending').length}</span>
+                    <span className="text-white font-bold">{pendingReportsTotal}</span>
                   </div>
                 </CardContent>
               </Card>
