@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -7,7 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, CheckCircle, XCircle, ExternalLink, FileText } from "lucide-react";
+import {
+  Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious,
+} from "@/components/ui/carousel";
+import {
+  Loader2, CheckCircle, XCircle, ExternalLink, FileText, History, Image as ImageIcon, Link as LinkIcon,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -37,9 +42,23 @@ interface ReviewReportModalProps {
   onResolved: (reportId: string) => void;
 }
 
+const URL_RE = /(https?:\/\/[^\s)]+)/gi;
+const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|avif)(\?.*)?$/i;
+
+const extractUrls = (...sources: (string | null | undefined)[]): string[] => {
+  const set = new Set<string>();
+  for (const s of sources) {
+    if (!s) continue;
+    const matches = s.match(URL_RE);
+    matches?.forEach((u) => set.add(u.replace(/[.,;]+$/, "")));
+  }
+  return Array.from(set);
+};
+
 const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReportModalProps) => {
   const [report, setReport] = useState<any>(null);
   const [post, setPost] = useState<any>(null);
+  const [timeline, setTimeline] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [decision, setDecision] = useState<Decision>("approve");
@@ -54,6 +73,7 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
       setLoading(true);
       setReport(null);
       setPost(null);
+      setTimeline([]);
       setNotes("");
       setDecision("approve");
       setReasonCode("violation_removed");
@@ -62,22 +82,42 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
       if (cancelled) return;
       setReport(r);
 
+      let postData: any = null;
       if (r?.post_id) {
         const { data: p } = await supabase.from("posts").select("*").eq("id", r.post_id).maybeSingle();
-        if (!cancelled) setPost(p);
+        if (cancelled) return;
+        postData = p;
+        setPost(p);
+      }
+
+      // Timeline: prior audit-log entries for this report or post
+      const ids = [reportId, r?.post_id].filter(Boolean) as string[];
+      if (ids.length > 0) {
+        const { data: logs } = await (supabase as any)
+          .from("admin_audit_logs")
+          .select("*")
+          .in("target_id", ids)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (!cancelled) setTimeline(logs ?? []);
       }
       setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [open, reportId]);
 
-  // When decision flips, reset reasonCode to a valid one for that decision
+  // Reset reasonCode to a valid one when decision flips
   useEffect(() => {
     const valid = REASON_OPTIONS.filter(r => r.appliesTo.includes(decision));
     if (!valid.some(r => r.code === reasonCode)) {
       setReasonCode(valid[0].code);
     }
   }, [decision, reasonCode]);
+
+  const evidenceUrls = useMemo(
+    () => extractUrls(report?.reason, post?.content, post?.title),
+    [report, post]
+  );
 
   const handleSubmit = async () => {
     if (!report) return;
@@ -96,7 +136,6 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
       return;
     }
 
-    // If approving and reason calls for removal, take post action
     if (decision === "approve" && post && reasonCode === "violation_removed") {
       await supabase.from("posts").update({ status: "flagged" }).eq("id", post.id);
     }
@@ -117,6 +156,7 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
         post_title: post?.title ?? null,
         post_status_after: decision === "approve" && reasonCode === "violation_removed" ? "flagged" : post?.status ?? null,
         original_reason: report.reason,
+        evidence_urls: evidenceUrls,
       },
     });
 
@@ -132,14 +172,14 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-yellow-400" />
             Review Report
           </DialogTitle>
           <DialogDescription className="text-slate-400">
-            Inspect the reported content and record a structured resolution. Your decision is written to the audit log.
+            Inspect evidence, review prior actions, and record a structured resolution. Your decision is written to the audit log.
           </DialogDescription>
         </DialogHeader>
 
@@ -156,7 +196,7 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
                 <span className="text-xs uppercase tracking-wide text-slate-400">Report reason</span>
                 <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{report.status}</Badge>
               </div>
-              <p className="text-sm text-white">{report.reason}</p>
+              <p className="text-sm text-white whitespace-pre-wrap">{report.reason}</p>
               <p className="text-xs text-slate-500 mt-2">
                 Filed {report.created_at ? new Date(report.created_at).toLocaleString() : "—"}
               </p>
@@ -190,6 +230,88 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
                 </>
               ) : (
                 <p className="text-slate-500 text-sm italic">Post no longer exists.</p>
+              )}
+            </div>
+
+            {/* Evidence carousel */}
+            {evidenceUrls.length > 0 && (
+              <div className="p-4 rounded-lg bg-slate-800/60 border border-slate-700">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs uppercase tracking-wide text-slate-400 flex items-center gap-1">
+                    <ImageIcon className="w-3 h-3" /> Evidence ({evidenceUrls.length})
+                  </span>
+                </div>
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {evidenceUrls.map((url, i) => {
+                      const isImage = IMAGE_EXT.test(url);
+                      return (
+                        <CarouselItem key={i}>
+                          <div className="rounded-lg border border-slate-700 bg-slate-950 p-3 min-h-[200px] flex flex-col">
+                            <div className="flex items-center justify-between mb-2 text-xs text-slate-400">
+                              <span>{i + 1} / {evidenceUrls.length}</span>
+                              <a href={url} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline inline-flex items-center gap-1">
+                                Open <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                            {isImage ? (
+                              <img
+                                src={url}
+                                alt={`Evidence ${i + 1}`}
+                                loading="lazy"
+                                className="max-h-[320px] w-auto mx-auto rounded object-contain"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                              />
+                            ) : (
+                              <div className="flex-1 flex items-center justify-center text-slate-300 text-sm break-all p-4">
+                                <LinkIcon className="w-4 h-4 mr-2 shrink-0" />
+                                {url}
+                              </div>
+                            )}
+                          </div>
+                        </CarouselItem>
+                      );
+                    })}
+                  </CarouselContent>
+                  {evidenceUrls.length > 1 && (
+                    <>
+                      <CarouselPrevious className="bg-slate-800 border-slate-600 text-white" />
+                      <CarouselNext className="bg-slate-800 border-slate-600 text-white" />
+                    </>
+                  )}
+                </Carousel>
+              </div>
+            )}
+
+            {/* Resolution timeline */}
+            <div className="p-4 rounded-lg bg-slate-800/60 border border-slate-700">
+              <div className="flex items-center gap-2 mb-3">
+                <History className="w-4 h-4 text-slate-400" />
+                <span className="text-xs uppercase tracking-wide text-slate-400">
+                  Prior actions ({timeline.length})
+                </span>
+              </div>
+              {timeline.length === 0 ? (
+                <p className="text-sm text-slate-500 italic">No previous admin actions on this report or post.</p>
+              ) : (
+                <ol className="space-y-2 max-h-56 overflow-y-auto pr-2">
+                  {timeline.map((log) => (
+                    <li key={log.id} className="text-xs border-l-2 border-slate-600 pl-3 py-1">
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Badge variant="outline" className="text-[10px] border-slate-600 text-slate-300">
+                          {log.action_type}
+                        </Badge>
+                        <span className="text-slate-500">
+                          {new Date(log.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-slate-200 mt-1">{log.summary}</p>
+                      {log.metadata?.notes && (
+                        <p className="text-slate-400 italic mt-1">"{log.metadata.notes}"</p>
+                      )}
+                    </li>
+                  ))}
+                </ol>
               )}
             </div>
 
