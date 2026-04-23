@@ -256,13 +256,23 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
                               </a>
                             </div>
                             {isImage ? (
-                              <img
-                                src={url}
-                                alt={`Evidence ${i + 1}`}
-                                loading="lazy"
-                                className="max-h-[320px] w-auto mx-auto rounded object-contain"
-                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                              />
+                              <button
+                                type="button"
+                                onClick={() => setZoomUrl(url)}
+                                className="group relative block mx-auto"
+                                aria-label={`Zoom evidence ${i + 1}`}
+                              >
+                                <img
+                                  src={url}
+                                  alt={`Evidence ${i + 1}`}
+                                  loading="lazy"
+                                  className="max-h-[320px] w-auto rounded object-contain cursor-zoom-in transition group-hover:opacity-90"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                                />
+                                <span className="absolute top-2 right-2 bg-black/60 text-white p-1.5 rounded opacity-0 group-hover:opacity-100 transition">
+                                  <ZoomIn className="w-4 h-4" />
+                                </span>
+                              </button>
                             ) : (
                               <div className="flex-1 flex items-center justify-center text-slate-300 text-sm break-all p-4">
                                 <LinkIcon className="w-4 h-4 mr-2 shrink-0" />
