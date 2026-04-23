@@ -180,6 +180,11 @@ const SupportChatbot = ({ user }: SupportChatbotProps) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            {suggestedPersona && (
+              <p className="md:col-span-2 text-center text-sm text-purple-300/80 -mt-2">
+                ✨ Based on your profile, we'd suggest <strong className="text-white">{suggestedPersona === "eva" ? "EVA" : "ADAM"}</strong> — but pick whoever feels right.
+              </p>
+            )}
             {/* EVA Card */}
             <Card 
               className="bg-gradient-to-br from-purple-900/40 to-pink-900/30 border-purple-500/30 cursor-pointer hover:border-purple-400/60 transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/10"
