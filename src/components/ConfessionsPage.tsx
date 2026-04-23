@@ -202,6 +202,21 @@ const ConfessionsPage = ({
           <CategoryFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
         </div>
 
+        {bufferedCount > 0 && (
+          <div className="flex justify-center mb-4">
+            <Button
+              onClick={() => {
+                flushBufferedInserts();
+                topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
+              size="sm"
+            >
+              ↑ Show {bufferedCount} new {bufferedCount === 1 ? "confession" : "confessions"}
+            </Button>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 text-white animate-spin" />
