@@ -153,6 +153,7 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
         reason_code: reasonCode,
         reason_label: reasonLabel,
         notes: notes.trim() || null,
+        resolution_notes: notes.trim() || null,
         post_id: report.post_id,
         post_title: post?.title ?? null,
         post_status_after: decision === "approve" && reasonCode === "violation_removed" ? "flagged" : post?.status ?? null,
