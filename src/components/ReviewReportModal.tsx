@@ -11,7 +11,7 @@ import {
   Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious,
 } from "@/components/ui/carousel";
 import {
-  Loader2, CheckCircle, XCircle, ExternalLink, FileText, History, Image as ImageIcon, Link as LinkIcon,
+  Loader2, CheckCircle, XCircle, ExternalLink, FileText, History, Image as ImageIcon, Link as LinkIcon, ZoomIn, X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
