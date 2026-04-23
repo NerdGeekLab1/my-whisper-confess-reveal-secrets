@@ -385,6 +385,41 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Zoom-in viewer for evidence images */}
+      <Dialog open={!!zoomUrl} onOpenChange={(o) => !o && setZoomUrl(null)}>
+        <DialogContent className="bg-black/95 border-slate-800 text-white max-w-[95vw] max-h-[95vh] p-2">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Evidence preview</DialogTitle>
+            <DialogDescription>Full-size view of the selected evidence image.</DialogDescription>
+          </DialogHeader>
+          <button
+            type="button"
+            onClick={() => setZoomUrl(null)}
+            className="absolute top-3 right-3 z-10 bg-slate-900/80 hover:bg-slate-800 text-white rounded-full p-2"
+            aria-label="Close zoom"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          {zoomUrl && (
+            <div className="flex flex-col items-center justify-center w-full h-full overflow-auto">
+              <img
+                src={zoomUrl}
+                alt="Evidence full size"
+                className="max-w-full max-h-[85vh] object-contain rounded"
+              />
+              <a
+                href={zoomUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 text-xs text-blue-400 hover:underline inline-flex items-center gap-1"
+              >
+                Open original <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };
