@@ -29,6 +29,14 @@ const SupportChatbot = ({ user }: SupportChatbotProps) => {
     }
   }, [messages]);
 
+  // Heuristic suggestion: pair opposite-gender companion (Eva for male, Adam for female)
+  const suggestedPersona: "eva" | "adam" | null = (() => {
+    const g = (user?.gender || user?.user_metadata?.gender || "").toString().toLowerCase();
+    if (g.startsWith("m")) return "eva";
+    if (g.startsWith("f") || g.startsWith("w")) return "adam";
+    return null;
+  })();
+
   const startChat = (selectedPersona: "eva" | "adam") => {
     setPersona(selectedPersona);
     setMessages([]);
