@@ -375,7 +375,28 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
           <TabsContent value="reports" className="space-y-6">
             <Card className="bg-slate-900 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white">Reports & Moderation</CardTitle>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <CardTitle className="text-white">Reports & Moderation</CardTitle>
+                  <div className="flex items-center gap-2 min-w-[260px] flex-1 max-w-md">
+                    <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                    <Input
+                      placeholder="Search reason, post_id, or user_id..."
+                      value={reportSearch}
+                      onChange={(e) => setReportSearch(e.target.value)}
+                      className="bg-slate-800 border-slate-600 text-white"
+                    />
+                    {reportSearch && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-slate-400 hover:text-white shrink-0"
+                        onClick={() => setReportSearch("")}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                   <span className="text-xs text-slate-400 mr-1">Resolution:</span>
                   {(["pending", "investigating", "resolved", "dismissed", "all"] as const).map((s) => (
@@ -393,10 +414,6 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                         : s === "resolved" ? "Approved"
                         : s === "dismissed" ? "Denied"
                         : "All"}
-                      {" "}
-                      <span className="ml-1 opacity-70">
-                        ({s === "all" ? reports.length : reports.filter(r => r.status === s).length})
-                      </span>
                     </Button>
                   ))}
                   <span className="text-xs text-slate-400 ml-4 mr-1">Post status:</span>
@@ -428,7 +445,6 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                   </TableHeader>
                   <TableBody>
                     {reports
-                      .filter(r => reportStatusFilter === "all" ? true : r.status === reportStatusFilter)
                       .filter(r => {
                         if (postStatusFilter === "all") return true;
                         const p = posts.find(x => x.id === r.post_id);
@@ -472,11 +488,56 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {reports.filter(r => reportStatusFilter === "all" ? true : r.status === reportStatusFilter).length === 0 && (
+                    {!reportsLoading && reports.length === 0 && (
                       <TableRow><TableCell colSpan={5} className="text-center text-slate-400 py-6">No reports match the current filters.</TableCell></TableRow>
+                    )}
+                    {reportsLoading && (
+                      <TableRow><TableCell colSpan={5} className="text-center text-slate-400 py-6">
+                        <Loader2 className="w-4 h-4 inline animate-spin mr-2" />Loading reports...
+                      </TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
+
+                {/* Cursor pagination */}
+                <div className="flex items-center justify-between mt-4">
+                  <span className="text-xs text-slate-500">
+                    Page {reportPageIndex + 1} · showing {reports.length} report{reports.length === 1 ? "" : "s"}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-600 text-slate-300"
+                      disabled={reportPageIndex === 0 || reportsLoading}
+                      onClick={() => {
+                        const prevCursors = reportCursors.slice(0, -1);
+                        const cursor = prevCursors.length > 0 ? prevCursors[prevCursors.length - 1] : null;
+                        setReportCursors(prevCursors);
+                        setReportPageIndex(i => Math.max(0, i - 1));
+                        // For a true previous page we re-query from the previous cursor
+                        fetchReportsPage(cursor, true);
+                      }}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />Previous
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-600 text-slate-300"
+                      disabled={!hasMoreReports || reportsLoading || reports.length === 0}
+                      onClick={() => {
+                        const lastCreatedAt = reports[reports.length - 1]?.created_at;
+                        if (!lastCreatedAt) return;
+                        setReportCursors(prev => [...prev, lastCreatedAt]);
+                        setReportPageIndex(i => i + 1);
+                        fetchReportsPage(lastCreatedAt, true);
+                      }}
+                    >
+                      Next<ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
