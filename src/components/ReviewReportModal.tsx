@@ -64,6 +64,7 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
   const [decision, setDecision] = useState<Decision>("approve");
   const [reasonCode, setReasonCode] = useState<ReasonCode>("violation_removed");
   const [notes, setNotes] = useState("");
+  const [zoomUrl, setZoomUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
