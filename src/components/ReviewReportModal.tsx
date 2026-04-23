@@ -355,15 +355,17 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-200">Notes (optional)</Label>
+              <Label className="text-slate-200">Resolution notes (optional)</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any context for the audit trail..."
-                className="bg-slate-800 border-slate-600 text-white min-h-[80px]"
+                placeholder="Explain your decision for the audit trail (what evidence you weighed, follow-up actions, etc.)"
+                className="bg-slate-800 border-slate-600 text-white min-h-[90px]"
                 maxLength={500}
               />
-              <p className="text-xs text-slate-500">{notes.length}/500</p>
+              <p className="text-xs text-slate-500">
+                Stored alongside your decision in the admin audit log. {notes.length}/500
+              </p>
             </div>
           </div>
         )}
