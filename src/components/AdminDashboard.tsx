@@ -193,7 +193,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-400 text-sm">Pending Reports</p>
-                  <p className="text-2xl font-bold text-white">{reports.filter(r => r.status === 'pending').length}</p>
+                  <p className="text-2xl font-bold text-white">{pendingReportsTotal}</p>
                 </div>
                 <AlertTriangle className="w-8 h-8 text-yellow-400" />
               </div>
