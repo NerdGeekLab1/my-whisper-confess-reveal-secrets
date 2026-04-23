@@ -33,6 +33,8 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const [postPage, setPostPage] = useState(0);
   const [totalPosts, setTotalPosts] = useState(0);
   const [reviewReportId, setReviewReportId] = useState<string | null>(null);
+  const [reportStatusFilter, setReportStatusFilter] = useState<"all" | "pending" | "investigating" | "resolved" | "dismissed">("pending");
+  const [postStatusFilter, setPostStatusFilter] = useState<"all" | "approved" | "pending" | "flagged">("all");
   const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
