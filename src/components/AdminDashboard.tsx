@@ -35,23 +35,72 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const [reviewReportId, setReviewReportId] = useState<string | null>(null);
   const [reportStatusFilter, setReportStatusFilter] = useState<"all" | "pending" | "investigating" | "resolved" | "dismissed">("pending");
   const [postStatusFilter, setPostStatusFilter] = useState<"all" | "approved" | "pending" | "flagged">("all");
-  const ITEMS_PER_PAGE = 20;
 
+  // Reports search + cursor pagination
+  const [reportSearch, setReportSearch] = useState("");
+  const [reportCursors, setReportCursors] = useState<string[]>([]); // stack of created_at cursors per page
+  const [reportPageIndex, setReportPageIndex] = useState(0);
+  const [hasMoreReports, setHasMoreReports] = useState(false);
+  const [reportsLoading, setReportsLoading] = useState(false);
+
+  const ITEMS_PER_PAGE = 20;
+  const REPORTS_PAGE_SIZE = 25;
+
+  // Fetch profiles + posts (initial)
   useEffect(() => {
     const fetchAll = async () => {
-      const [profilesRes, postsRes, reportsRes] = await Promise.all([
+      const [profilesRes, postsRes] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("posts").select("*", { count: "exact" }).order("created_at", { ascending: false }).range(postPage * ITEMS_PER_PAGE, (postPage + 1) * ITEMS_PER_PAGE - 1),
-        supabase.from("reports").select("*").order("created_at", { ascending: false }),
       ]);
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (postsRes.data) setPosts(postsRes.data);
       if (postsRes.count !== null) setTotalPosts(postsRes.count);
-      if (reportsRes.data) setReports(reportsRes.data);
       setLoading(false);
     };
     fetchAll();
   }, [postPage]);
+
+  // Cursor-based reports loader (server-side filter + search)
+  const fetchReportsPage = async (cursor: string | null, replace: boolean) => {
+    setReportsLoading(true);
+    let q = supabase
+      .from("reports")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(REPORTS_PAGE_SIZE + 1);
+
+    if (cursor) q = q.lt("created_at", cursor);
+    if (reportStatusFilter !== "all") q = q.eq("status", reportStatusFilter);
+
+    const term = reportSearch.trim();
+    if (term) {
+      // Match keywords in reason, exact post_id, or exact reporter_id
+      const looksLikeUuid = /^[0-9a-f-]{8,}$/i.test(term);
+      if (looksLikeUuid) {
+        q = q.or(`reason.ilike.%${term}%,post_id.eq.${term},reporter_id.eq.${term}`);
+      } else {
+        q = q.ilike("reason", `%${term}%`);
+      }
+    }
+
+    const { data, error } = await q;
+    if (!error && data) {
+      const more = data.length > REPORTS_PAGE_SIZE;
+      const pageRows = more ? data.slice(0, REPORTS_PAGE_SIZE) : data;
+      setHasMoreReports(more);
+      setReports(prev => (replace ? pageRows : [...prev, ...pageRows]));
+    }
+    setReportsLoading(false);
+  };
+
+  // Reset + reload reports whenever filter/search changes
+  useEffect(() => {
+    setReportCursors([]);
+    setReportPageIndex(0);
+    fetchReportsPage(null, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportStatusFilter, reportSearch]);
 
   const handleDeletePost = async (postId: string) => {
     const { error } = await supabase.from("posts").delete().eq("id", postId);
