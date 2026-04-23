@@ -42,20 +42,23 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const [reportPageIndex, setReportPageIndex] = useState(0);
   const [hasMoreReports, setHasMoreReports] = useState(false);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [pendingReportsTotal, setPendingReportsTotal] = useState(0);
 
   const ITEMS_PER_PAGE = 20;
   const REPORTS_PAGE_SIZE = 25;
 
-  // Fetch profiles + posts (initial)
+  // Fetch profiles + posts (initial) + aggregate report count
   useEffect(() => {
     const fetchAll = async () => {
-      const [profilesRes, postsRes] = await Promise.all([
+      const [profilesRes, postsRes, pendingCountRes] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("posts").select("*", { count: "exact" }).order("created_at", { ascending: false }).range(postPage * ITEMS_PER_PAGE, (postPage + 1) * ITEMS_PER_PAGE - 1),
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (postsRes.data) setPosts(postsRes.data);
       if (postsRes.count !== null) setTotalPosts(postsRes.count);
+      if (pendingCountRes.count !== null) setPendingReportsTotal(pendingCountRes.count ?? 0);
       setLoading(false);
     };
     fetchAll();
