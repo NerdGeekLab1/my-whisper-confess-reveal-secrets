@@ -34,6 +34,11 @@ const ConfessionsPage = ({
   const newestCreatedAtRef = useRef<string | null>(null);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const topRef = useRef<HTMLDivElement | null>(null);
+  // Buffer realtime inserts that arrive while the user is loading older pages,
+  // so we don't shift the cursor / list mid-fetch.
+  const pendingInsertsRef = useRef<any[]>([]);
+  const loadingMoreRef = useRef(false);
+  const [bufferedCount, setBufferedCount] = useState(0);
 
   // Cursor-based fetch: pass `before` (created_at) to load older items.
   const fetchPage = useCallback(
@@ -72,8 +77,21 @@ const ConfessionsPage = ({
     setLoading(false);
   }, [fetchPage]);
 
+  const flushBufferedInserts = useCallback(() => {
+    if (pendingInsertsRef.current.length === 0) return;
+    const buffered = pendingInsertsRef.current;
+    pendingInsertsRef.current = [];
+    setBufferedCount(0);
+    setPosts((prev) => {
+      const fresh = buffered.filter((p) => !prev.some((x) => x.id === p.id));
+      fresh.forEach((p) => seenIdsRef.current.add(p.id));
+      return [...fresh, ...prev];
+    });
+  }, []);
+
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMoreRef.current || !hasMore) return;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
     const oldest = posts[posts.length - 1]?.created_at ?? null;
     const data = await fetchPage(oldest);
@@ -82,7 +100,10 @@ const ConfessionsPage = ({
     setPosts((prev) => [...prev, ...fresh]);
     setHasMore(data.length === PAGE_SIZE);
     setLoadingMore(false);
-  }, [fetchPage, hasMore, loadingMore, posts]);
+    loadingMoreRef.current = false;
+    // Now that pagination settled, merge any inserts that arrived during the fetch
+    flushBufferedInserts();
+  }, [fetchPage, hasMore, posts, flushBufferedInserts]);
 
   // Reload from top when category changes
   useEffect(() => {
@@ -111,6 +132,16 @@ const ConfessionsPage = ({
 
           seenIdsRef.current.add(p.id);
           if (p.created_at) newestCreatedAtRef.current = p.created_at;
+
+          // If user is loading older pages, buffer the insert to avoid shifting the cursor.
+          if (loadingMoreRef.current) {
+            pendingInsertsRef.current = [p, ...pendingInsertsRef.current];
+            setBufferedCount(pendingInsertsRef.current.length);
+            toast("New confession posted", {
+              description: "Will appear after older posts finish loading.",
+            });
+            return;
+          }
 
           // Prepend so the new item is reachable as the user scrolls or via "View".
           setPosts((prev) => [p, ...prev]);
@@ -170,6 +201,21 @@ const ConfessionsPage = ({
         <div className="mb-8">
           <CategoryFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
         </div>
+
+        {bufferedCount > 0 && (
+          <div className="flex justify-center mb-4">
+            <Button
+              onClick={() => {
+                flushBufferedInserts();
+                topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
+              size="sm"
+            >
+              ↑ Show {bufferedCount} new {bufferedCount === 1 ? "confession" : "confessions"}
+            </Button>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-12">

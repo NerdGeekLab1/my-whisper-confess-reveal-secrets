@@ -33,6 +33,8 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const [postPage, setPostPage] = useState(0);
   const [totalPosts, setTotalPosts] = useState(0);
   const [reviewReportId, setReviewReportId] = useState<string | null>(null);
+  const [reportStatusFilter, setReportStatusFilter] = useState<"all" | "pending" | "investigating" | "resolved" | "dismissed">("pending");
+  const [postStatusFilter, setPostStatusFilter] = useState<"all" | "approved" | "pending" | "flagged">("all");
   const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
@@ -323,7 +325,47 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
 
           <TabsContent value="reports" className="space-y-6">
             <Card className="bg-slate-900 border-slate-700">
-              <CardHeader><CardTitle className="text-white">Reports & Moderation</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-white">Reports & Moderation</CardTitle>
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  <span className="text-xs text-slate-400 mr-1">Resolution:</span>
+                  {(["pending", "investigating", "resolved", "dismissed", "all"] as const).map((s) => (
+                    <Button
+                      key={s}
+                      size="sm"
+                      variant={reportStatusFilter === s ? "default" : "outline"}
+                      className={reportStatusFilter === s
+                        ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                        : "border-slate-600 text-slate-300 hover:text-white"}
+                      onClick={() => setReportStatusFilter(s)}
+                    >
+                      {s === "pending" ? "Unresolved"
+                        : s === "investigating" ? "Investigating"
+                        : s === "resolved" ? "Approved"
+                        : s === "dismissed" ? "Denied"
+                        : "All"}
+                      {" "}
+                      <span className="ml-1 opacity-70">
+                        ({s === "all" ? reports.length : reports.filter(r => r.status === s).length})
+                      </span>
+                    </Button>
+                  ))}
+                  <span className="text-xs text-slate-400 ml-4 mr-1">Post status:</span>
+                  {(["all", "approved", "pending", "flagged"] as const).map((s) => (
+                    <Button
+                      key={s}
+                      size="sm"
+                      variant={postStatusFilter === s ? "default" : "outline"}
+                      className={postStatusFilter === s
+                        ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+                        : "border-slate-600 text-slate-300 hover:text-white"}
+                      onClick={() => setPostStatusFilter(s)}
+                    >
+                      {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+                    </Button>
+                  ))}
+                </div>
+              </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
@@ -336,9 +378,16 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {reports.map((report) => (
+                    {reports
+                      .filter(r => reportStatusFilter === "all" ? true : r.status === reportStatusFilter)
+                      .filter(r => {
+                        if (postStatusFilter === "all") return true;
+                        const p = posts.find(x => x.id === r.post_id);
+                        return p?.status === postStatusFilter;
+                      })
+                      .map((report) => (
                       <TableRow key={report.id} className="border-slate-700">
-                        <TableCell className="text-white">{report.reason}</TableCell>
+                        <TableCell className="text-white max-w-xs truncate">{report.reason}</TableCell>
                         <TableCell className="text-slate-300 text-xs">{report.post_id?.slice(0, 8) || "—"}</TableCell>
                         <TableCell className="text-slate-300">
                           {report.created_at ? new Date(report.created_at).toLocaleDateString() : "—"}
@@ -346,6 +395,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                         <TableCell>
                           <Badge className={
                             report.status === 'resolved' ? 'bg-green-500/20 text-green-400' :
+                            report.status === 'dismissed' ? 'bg-slate-500/20 text-slate-300' :
                             report.status === 'investigating' ? 'bg-blue-500/20 text-blue-400' :
                             'bg-yellow-500/20 text-yellow-400'
                           }>{report.status}</Badge>
@@ -361,13 +411,20 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                               <Eye className="w-3 h-3 mr-1" />Review
                             </Button>
                           ) : (
-                            <span className="text-xs text-slate-500">Closed</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-slate-400 hover:text-white"
+                              onClick={() => setReviewReportId(report.id)}
+                            >
+                              <Eye className="w-3 h-3 mr-1" />View
+                            </Button>
                           )}
                         </TableCell>
                       </TableRow>
                     ))}
-                    {reports.length === 0 && (
-                      <TableRow><TableCell colSpan={5} className="text-center text-slate-400">No reports</TableCell></TableRow>
+                    {reports.filter(r => reportStatusFilter === "all" ? true : r.status === reportStatusFilter).length === 0 && (
+                      <TableRow><TableCell colSpan={5} className="text-center text-slate-400 py-6">No reports match the current filters.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
