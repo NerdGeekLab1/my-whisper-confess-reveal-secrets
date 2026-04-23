@@ -35,23 +35,75 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const [reviewReportId, setReviewReportId] = useState<string | null>(null);
   const [reportStatusFilter, setReportStatusFilter] = useState<"all" | "pending" | "investigating" | "resolved" | "dismissed">("pending");
   const [postStatusFilter, setPostStatusFilter] = useState<"all" | "approved" | "pending" | "flagged">("all");
-  const ITEMS_PER_PAGE = 20;
 
+  // Reports search + cursor pagination
+  const [reportSearch, setReportSearch] = useState("");
+  const [reportCursors, setReportCursors] = useState<string[]>([]); // stack of created_at cursors per page
+  const [reportPageIndex, setReportPageIndex] = useState(0);
+  const [hasMoreReports, setHasMoreReports] = useState(false);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [pendingReportsTotal, setPendingReportsTotal] = useState(0);
+
+  const ITEMS_PER_PAGE = 20;
+  const REPORTS_PAGE_SIZE = 25;
+
+  // Fetch profiles + posts (initial) + aggregate report count
   useEffect(() => {
     const fetchAll = async () => {
-      const [profilesRes, postsRes, reportsRes] = await Promise.all([
+      const [profilesRes, postsRes, pendingCountRes] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("posts").select("*", { count: "exact" }).order("created_at", { ascending: false }).range(postPage * ITEMS_PER_PAGE, (postPage + 1) * ITEMS_PER_PAGE - 1),
-        supabase.from("reports").select("*").order("created_at", { ascending: false }),
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (postsRes.data) setPosts(postsRes.data);
       if (postsRes.count !== null) setTotalPosts(postsRes.count);
-      if (reportsRes.data) setReports(reportsRes.data);
+      if (pendingCountRes.count !== null) setPendingReportsTotal(pendingCountRes.count ?? 0);
       setLoading(false);
     };
     fetchAll();
   }, [postPage]);
+
+  // Cursor-based reports loader (server-side filter + search)
+  const fetchReportsPage = async (cursor: string | null, replace: boolean) => {
+    setReportsLoading(true);
+    let q = supabase
+      .from("reports")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(REPORTS_PAGE_SIZE + 1);
+
+    if (cursor) q = q.lt("created_at", cursor);
+    if (reportStatusFilter !== "all") q = q.eq("status", reportStatusFilter);
+
+    const term = reportSearch.trim();
+    if (term) {
+      // Match keywords in reason, exact post_id, or exact reporter_id
+      const looksLikeUuid = /^[0-9a-f-]{8,}$/i.test(term);
+      if (looksLikeUuid) {
+        q = q.or(`reason.ilike.%${term}%,post_id.eq.${term},reporter_id.eq.${term}`);
+      } else {
+        q = q.ilike("reason", `%${term}%`);
+      }
+    }
+
+    const { data, error } = await q;
+    if (!error && data) {
+      const more = data.length > REPORTS_PAGE_SIZE;
+      const pageRows = more ? data.slice(0, REPORTS_PAGE_SIZE) : data;
+      setHasMoreReports(more);
+      setReports(prev => (replace ? pageRows : [...prev, ...pageRows]));
+    }
+    setReportsLoading(false);
+  };
+
+  // Reset + reload reports whenever filter/search changes
+  useEffect(() => {
+    setReportCursors([]);
+    setReportPageIndex(0);
+    fetchReportsPage(null, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportStatusFilter, reportSearch]);
 
   const handleDeletePost = async (postId: string) => {
     const { error } = await supabase.from("posts").delete().eq("id", postId);
@@ -141,7 +193,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-400 text-sm">Pending Reports</p>
-                  <p className="text-2xl font-bold text-white">{reports.filter(r => r.status === 'pending').length}</p>
+                  <p className="text-2xl font-bold text-white">{pendingReportsTotal}</p>
                 </div>
                 <AlertTriangle className="w-8 h-8 text-yellow-400" />
               </div>
@@ -197,7 +249,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-300">Open Reports</span>
-                    <span className="text-white font-bold">{reports.filter(r => r.status === 'pending').length}</span>
+                    <span className="text-white font-bold">{pendingReportsTotal}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -326,7 +378,28 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
           <TabsContent value="reports" className="space-y-6">
             <Card className="bg-slate-900 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white">Reports & Moderation</CardTitle>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <CardTitle className="text-white">Reports & Moderation</CardTitle>
+                  <div className="flex items-center gap-2 min-w-[260px] flex-1 max-w-md">
+                    <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                    <Input
+                      placeholder="Search reason, post_id, or user_id..."
+                      value={reportSearch}
+                      onChange={(e) => setReportSearch(e.target.value)}
+                      className="bg-slate-800 border-slate-600 text-white"
+                    />
+                    {reportSearch && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-slate-400 hover:text-white shrink-0"
+                        onClick={() => setReportSearch("")}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                   <span className="text-xs text-slate-400 mr-1">Resolution:</span>
                   {(["pending", "investigating", "resolved", "dismissed", "all"] as const).map((s) => (
@@ -344,10 +417,6 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                         : s === "resolved" ? "Approved"
                         : s === "dismissed" ? "Denied"
                         : "All"}
-                      {" "}
-                      <span className="ml-1 opacity-70">
-                        ({s === "all" ? reports.length : reports.filter(r => r.status === s).length})
-                      </span>
                     </Button>
                   ))}
                   <span className="text-xs text-slate-400 ml-4 mr-1">Post status:</span>
@@ -379,7 +448,6 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                   </TableHeader>
                   <TableBody>
                     {reports
-                      .filter(r => reportStatusFilter === "all" ? true : r.status === reportStatusFilter)
                       .filter(r => {
                         if (postStatusFilter === "all") return true;
                         const p = posts.find(x => x.id === r.post_id);
@@ -423,11 +491,56 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {reports.filter(r => reportStatusFilter === "all" ? true : r.status === reportStatusFilter).length === 0 && (
+                    {!reportsLoading && reports.length === 0 && (
                       <TableRow><TableCell colSpan={5} className="text-center text-slate-400 py-6">No reports match the current filters.</TableCell></TableRow>
+                    )}
+                    {reportsLoading && (
+                      <TableRow><TableCell colSpan={5} className="text-center text-slate-400 py-6">
+                        <Loader2 className="w-4 h-4 inline animate-spin mr-2" />Loading reports...
+                      </TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
+
+                {/* Cursor pagination */}
+                <div className="flex items-center justify-between mt-4">
+                  <span className="text-xs text-slate-500">
+                    Page {reportPageIndex + 1} · showing {reports.length} report{reports.length === 1 ? "" : "s"}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-600 text-slate-300"
+                      disabled={reportPageIndex === 0 || reportsLoading}
+                      onClick={() => {
+                        const prevCursors = reportCursors.slice(0, -1);
+                        const cursor = prevCursors.length > 0 ? prevCursors[prevCursors.length - 1] : null;
+                        setReportCursors(prevCursors);
+                        setReportPageIndex(i => Math.max(0, i - 1));
+                        // For a true previous page we re-query from the previous cursor
+                        fetchReportsPage(cursor, true);
+                      }}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />Previous
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-600 text-slate-300"
+                      disabled={!hasMoreReports || reportsLoading || reports.length === 0}
+                      onClick={() => {
+                        const lastCreatedAt = reports[reports.length - 1]?.created_at;
+                        if (!lastCreatedAt) return;
+                        setReportCursors(prev => [...prev, lastCreatedAt]);
+                        setReportPageIndex(i => i + 1);
+                        fetchReportsPage(lastCreatedAt, true);
+                      }}
+                    >
+                      Next<ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

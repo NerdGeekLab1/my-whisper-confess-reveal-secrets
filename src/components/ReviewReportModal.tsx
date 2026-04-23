@@ -11,7 +11,7 @@ import {
   Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious,
 } from "@/components/ui/carousel";
 import {
-  Loader2, CheckCircle, XCircle, ExternalLink, FileText, History, Image as ImageIcon, Link as LinkIcon,
+  Loader2, CheckCircle, XCircle, ExternalLink, FileText, History, Image as ImageIcon, Link as LinkIcon, ZoomIn, X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -64,6 +64,7 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
   const [decision, setDecision] = useState<Decision>("approve");
   const [reasonCode, setReasonCode] = useState<ReasonCode>("violation_removed");
   const [notes, setNotes] = useState("");
+  const [zoomUrl, setZoomUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -152,6 +153,7 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
         reason_code: reasonCode,
         reason_label: reasonLabel,
         notes: notes.trim() || null,
+        resolution_notes: notes.trim() || null,
         post_id: report.post_id,
         post_title: post?.title ?? null,
         post_status_after: decision === "approve" && reasonCode === "violation_removed" ? "flagged" : post?.status ?? null,
@@ -255,13 +257,23 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
                               </a>
                             </div>
                             {isImage ? (
-                              <img
-                                src={url}
-                                alt={`Evidence ${i + 1}`}
-                                loading="lazy"
-                                className="max-h-[320px] w-auto mx-auto rounded object-contain"
-                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                              />
+                              <button
+                                type="button"
+                                onClick={() => setZoomUrl(url)}
+                                className="group relative block mx-auto"
+                                aria-label={`Zoom evidence ${i + 1}`}
+                              >
+                                <img
+                                  src={url}
+                                  alt={`Evidence ${i + 1}`}
+                                  loading="lazy"
+                                  className="max-h-[320px] w-auto rounded object-contain cursor-zoom-in transition group-hover:opacity-90"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                                />
+                                <span className="absolute top-2 right-2 bg-black/60 text-white p-1.5 rounded opacity-0 group-hover:opacity-100 transition">
+                                  <ZoomIn className="w-4 h-4" />
+                                </span>
+                              </button>
                             ) : (
                               <div className="flex-1 flex items-center justify-center text-slate-300 text-sm break-all p-4">
                                 <LinkIcon className="w-4 h-4 mr-2 shrink-0" />
@@ -344,15 +356,17 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-200">Notes (optional)</Label>
+              <Label className="text-slate-200">Resolution notes (optional)</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any context for the audit trail..."
-                className="bg-slate-800 border-slate-600 text-white min-h-[80px]"
+                placeholder="Explain your decision for the audit trail (what evidence you weighed, follow-up actions, etc.)"
+                className="bg-slate-800 border-slate-600 text-white min-h-[90px]"
                 maxLength={500}
               />
-              <p className="text-xs text-slate-500">{notes.length}/500</p>
+              <p className="text-xs text-slate-500">
+                Stored alongside your decision in the admin audit log. {notes.length}/500
+              </p>
             </div>
           </div>
         )}
@@ -371,6 +385,41 @@ const ReviewReportModal = ({ reportId, open, onClose, onResolved }: ReviewReport
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Zoom-in viewer for evidence images */}
+      <Dialog open={!!zoomUrl} onOpenChange={(o) => !o && setZoomUrl(null)}>
+        <DialogContent className="bg-black/95 border-slate-800 text-white max-w-[95vw] max-h-[95vh] p-2">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Evidence preview</DialogTitle>
+            <DialogDescription>Full-size view of the selected evidence image.</DialogDescription>
+          </DialogHeader>
+          <button
+            type="button"
+            onClick={() => setZoomUrl(null)}
+            className="absolute top-3 right-3 z-10 bg-slate-900/80 hover:bg-slate-800 text-white rounded-full p-2"
+            aria-label="Close zoom"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          {zoomUrl && (
+            <div className="flex flex-col items-center justify-center w-full h-full overflow-auto">
+              <img
+                src={zoomUrl}
+                alt="Evidence full size"
+                className="max-w-full max-h-[85vh] object-contain rounded"
+              />
+              <a
+                href={zoomUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 text-xs text-blue-400 hover:underline inline-flex items-center gap-1"
+              >
+                Open original <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };
