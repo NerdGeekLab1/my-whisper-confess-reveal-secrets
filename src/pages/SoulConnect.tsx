@@ -263,7 +263,7 @@ const SoulConnect = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      <Header currentPage="soul-connect" setCurrentPage={(p) => p === "confessions" ? navigate("/") : null} user={user} handleLogout={handleLogout} handleRestrictedAction={handleRestrictedAction} setShowAuthModal={setShowAuthModal} setShowPostCreator={setShowPostCreator} />
+      <Header currentPage="soul-connect" setCurrentPage={(p: string) => { if (p === "confessions") navigate("/"); }} user={user} handleLogout={handleLogout} handleRestrictedAction={handleRestrictedAction} setShowAuthModal={setShowAuthModal} setShowPostCreator={setShowPostCreator} />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-slate-400 mb-3">
