@@ -248,7 +248,7 @@ const SoulConnect = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        <Header currentPage="soul-connect" setCurrentPage={(p) => p === "confessions" ? navigate("/") : null} user={user} handleLogout={handleLogout} handleRestrictedAction={handleRestrictedAction} setShowAuthModal={setShowAuthModal} setShowPostCreator={setShowPostCreator} />
+        <Header currentPage="soul-connect" setCurrentPage={(p: string) => { if (p === "confessions") navigate("/"); }} user={user} handleLogout={handleLogout} handleRestrictedAction={handleRestrictedAction} setShowAuthModal={setShowAuthModal} setShowPostCreator={setShowPostCreator} />
         <div className="container mx-auto px-4 py-16 text-center text-white">
           <Sparkles className="w-12 h-12 mx-auto mb-4 text-pink-400" />
           <h1 className="text-3xl font-bold mb-2">Anonymous Soul Connect</h1>
