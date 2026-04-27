@@ -13,6 +13,7 @@ import FeatureDocumentation from "./pages/FeatureDocumentation";
 import TermsOfService from "./pages/TermsOfService";
 import ReportAbuse from "./pages/ReportAbuse";
 import DataProtection from "./pages/DataProtection";
+import SoulConnect from "./pages/SoulConnect";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/report-abuse" element={<ReportAbuse />} />
           <Route path="/data-protection" element={<DataProtection />} />
+          <Route path="/soul-connect" element={<SoulConnect />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

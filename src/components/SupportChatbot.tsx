@@ -60,7 +60,14 @@ const SupportChatbot = ({ user }: SupportChatbotProps) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: newHistory, persona: chatPersona }),
+        body: JSON.stringify({
+          messages: newHistory,
+          persona: chatPersona,
+          userMeta: {
+            nickname: user?.username || user?.user_metadata?.username || user?.email?.split("@")[0] || null,
+            gender: user?.gender || user?.user_metadata?.gender || null,
+          },
+        }),
       });
 
       if (!resp.ok || !resp.body) {

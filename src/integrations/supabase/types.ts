@@ -201,6 +201,7 @@ export type Database = {
         Row: {
           created_at: string | null
           email: string | null
+          gender: Database["public"]["Enums"]["gender_type"] | null
           id: string
           is_verified: boolean | null
           joined_date: string | null
@@ -211,6 +212,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           email?: string | null
+          gender?: Database["public"]["Enums"]["gender_type"] | null
           id: string
           is_verified?: boolean | null
           joined_date?: string | null
@@ -221,6 +223,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           email?: string | null
+          gender?: Database["public"]["Enums"]["gender_type"] | null
           id?: string
           is_verified?: boolean | null
           joined_date?: string | null
@@ -265,6 +268,134 @@ export type Database = {
           },
         ]
       }
+      soul_posts: {
+        Row: {
+          ai_soul_score: number | null
+          author_gender: Database["public"]["Enums"]["gender_type"]
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          matched_at: string | null
+          matched_user_gender: Database["public"]["Enums"]["gender_type"] | null
+          matched_user_id: string | null
+          mood: string | null
+          participant_score: number | null
+          reply_count: number
+          soul_score: number | null
+          status: string
+          target_gender: Database["public"]["Enums"]["gender_type"]
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_soul_score?: number | null
+          author_gender: Database["public"]["Enums"]["gender_type"]
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          matched_at?: string | null
+          matched_user_gender?:
+            | Database["public"]["Enums"]["gender_type"]
+            | null
+          matched_user_id?: string | null
+          mood?: string | null
+          participant_score?: number | null
+          reply_count?: number
+          soul_score?: number | null
+          status?: string
+          target_gender: Database["public"]["Enums"]["gender_type"]
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_soul_score?: number | null
+          author_gender?: Database["public"]["Enums"]["gender_type"]
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          matched_at?: string | null
+          matched_user_gender?:
+            | Database["public"]["Enums"]["gender_type"]
+            | null
+          matched_user_id?: string | null
+          mood?: string | null
+          participant_score?: number | null
+          reply_count?: number
+          soul_score?: number | null
+          status?: string
+          target_gender?: Database["public"]["Enums"]["gender_type"]
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      soul_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          rater_id: string
+          rating: number
+          soul_post_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rater_id: string
+          rating: number
+          soul_post_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rater_id?: string
+          rating?: number
+          soul_post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "soul_ratings_soul_post_id_fkey"
+            columns: ["soul_post_id"]
+            isOneToOne: false
+            referencedRelation: "soul_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      soul_replies: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          soul_post_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          soul_post_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          soul_post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "soul_replies_soul_post_id_fkey"
+            columns: ["soul_post_id"]
+            isOneToOne: false
+            referencedRelation: "soul_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -305,6 +436,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      gender_type: "male" | "female" | "other" | "undisclosed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -433,6 +565,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      gender_type: ["male", "female", "other", "undisclosed"],
     },
   },
 } as const

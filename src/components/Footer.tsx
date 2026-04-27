@@ -1,5 +1,4 @@
-
-import { Heart, Shield, FileText, Users, HelpCircle, Lock } from "lucide-react";
+import { Heart, Shield, FileText, Users, HelpCircle, Lock, Sparkles } from "lucide-react";
 
 interface FooterProps {
   setCurrentPage?: (page: string) => void;
@@ -81,6 +80,15 @@ const Footer = ({ setCurrentPage }: FooterProps = {}) => {
                 >
                   <Shield className="w-4 h-4 mr-2" />
                   Report Abuse
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => window.location.assign("/soul-connect")}
+                  className="text-pink-300 hover:text-pink-200 transition-colors flex items-center text-left"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Soul Connect <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-pink-500/20 border border-pink-500/30">BETA</span>
                 </button>
               </li>
             </ul>
