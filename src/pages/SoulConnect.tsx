@@ -40,7 +40,8 @@ const oppositeOf = (g: string) => (g === "male" ? "female" : g === "female" ? "m
 
 const SoulConnect = () => {
   const navigate = useNavigate();
-  const { user, showAuthModal, setShowAuthModal, handleLogout, handleRestrictedAction, setShowPostCreator } = useAuth() as any;
+  const { user, showAuthModal, setShowAuthModal, handleLogout, handleRestrictedAction } = useAuth();
+  const setShowPostCreator = (_: boolean) => {};
   const { toast } = useToast();
 
   const [gender, setGender] = useState<string | null>(null);
