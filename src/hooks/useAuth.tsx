@@ -37,32 +37,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const ensuredUsersRef = useRef<Set<string>>(new Set());
 
-  const ensureCurrentUserSetup = useCallback(async (authUser: User) => {
-    try {
-      const safeUsername = authUser.user_metadata?.username?.trim() || authUser.email?.split("@")[0] || "anonymous";
-      const { error } = await supabase.from("profiles").upsert({
-        id: authUser.id,
-        email: authUser.email ?? null,
-        username: safeUsername,
-        is_verified: false,
-        joined_date: new Date().toISOString(),
-        last_active: new Date().toISOString(),
-      }, { onConflict: "id", ignoreDuplicates: true });
-
-      if (error) {
-        throw error;
-      }
-
-      ensuredUsersRef.current.add(authUser.id);
-    } catch (error) {
-      console.warn("ensureCurrentUserSetup failed", error);
-    }
+  const ensureCurrentUserSetup = useCallback((authUser: User) => {
+    // Fire-and-forget — never block the UI on this. Trigger handle_new_user already
+    // creates the profile on signup; this is just a safety net for legacy users.
+    if (ensuredUsersRef.current.has(authUser.id)) return;
+    ensuredUsersRef.current.add(authUser.id);
+    const safeUsername = authUser.user_metadata?.username?.trim() || authUser.email?.split("@")[0] || "anonymous";
+    supabase.from("profiles").upsert({
+      id: authUser.id,
+      email: authUser.email ?? null,
+      username: safeUsername,
+      is_verified: false,
+      joined_date: new Date().toISOString(),
+      last_active: new Date().toISOString(),
+    }, { onConflict: "id", ignoreDuplicates: true }).then(({ error }) => {
+      if (error) console.warn("ensureCurrentUserSetup failed", error);
+    });
   }, []);
 
   const fetchUserProfile = useCallback(async (authUser: User, options?: { skipEnsure?: boolean }): Promise<AppUser | null> => {
     try {
-      if (!options?.skipEnsure && !ensuredUsersRef.current.has(authUser.id)) {
-        await ensureCurrentUserSetup(authUser);
+      if (!options?.skipEnsure) {
+        ensureCurrentUserSetup(authUser);
       }
 
       const [profileRes, roleRes] = await Promise.all([
@@ -113,18 +109,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
+    let lastSyncedUserId: string | null = null;
+
+    const sync = async (authUser: User | null, options?: { skipEnsure?: boolean }) => {
+      if (!mounted) return;
+      // Avoid duplicate fetch when bootstrap and INITIAL_SESSION/SIGNED_IN fire for the same user
+      const nextId = authUser?.id ?? null;
+      if (nextId === lastSyncedUserId && nextId !== null) {
+        setLoading(false);
+        return;
+      }
+      lastSyncedUserId = nextId;
+      await syncAuthUser(authUser, options);
+    };
 
     const bootstrap = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
-      await syncAuthUser(session?.user ?? null);
+      await sync(session?.user ?? null);
     };
 
     bootstrap();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "INITIAL_SESSION" || !mounted) return;
-      await syncAuthUser(session?.user ?? null, { skipEnsure: event === "TOKEN_REFRESHED" });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (event === "INITIAL_SESSION") return;
+      // Reset dedupe on sign-out / user change so we re-fetch
+      if (!session?.user || session.user.id !== lastSyncedUserId) {
+        lastSyncedUserId = null;
+      }
+      sync(session?.user ?? null, { skipEnsure: event === "TOKEN_REFRESHED" });
     });
 
     return () => {
@@ -182,52 +195,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return true;
   }, [toast, user]);
 
-  const attemptDemoSignIn = useCallback(async (email: string, password: string) => {
-    let error: Error | null = null;
-    let authUser: User | null = null;
-
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const response = await supabase.auth.signInWithPassword({ email, password });
-      error = response.error;
-      authUser = response.data.user ?? null;
-      if (authUser && !error) {
-        return { authUser, error: null };
-      }
-    }
-
-    return { authUser, error };
-  }, []);
-
   const handleDemoLogin = useCallback(async (accountType: "user" | "admin") => {
     const creds = accountType === "admin"
       ? { email: "admin@demo.com", password: "admin123" }
       : { email: "user@demo.com", password: "demo123" };
 
-    toast({ title: "Preparing demo access", description: "Getting the demo account ready." });
+    let { data, error } = await supabase.auth.signInWithPassword(creds);
 
-    let result = await attemptDemoSignIn(creds.email, creds.password);
-
-    if (result.error) {
+    // Only seed if the credentials are actually invalid (account missing / drift)
+    if (error) {
       try {
         await supabase.functions.invoke("seed-demo");
       } catch (seedErr) {
         console.error("seed-demo failed", seedErr);
       }
-      result = await attemptDemoSignIn(creds.email, creds.password);
+      ({ data, error } = await supabase.auth.signInWithPassword(creds));
     }
 
-    if (result.authUser) {
-      ensuredUsersRef.current.add(result.authUser.id);
+    if (data?.user && !error) {
+      ensuredUsersRef.current.add(data.user.id);
       setShowAuthModal(false);
       return;
     }
 
     toast({
       title: "Demo login failed",
-      description: result.error?.message || "Please try again in a moment.",
+      description: error?.message || "Please try again in a moment.",
       variant: "destructive",
     });
-  }, [attemptDemoSignIn, toast]);
+  }, [toast]);
 
   const validateDemoCredentials = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
