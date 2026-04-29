@@ -9,15 +9,22 @@ import { useToast } from "@/hooks/use-toast";
 interface Props {
   userId: string;
   open: boolean;
+  currentGender?: string | null;
   onClose: (gender: string | null) => void;
 }
 
-const GenderPrompt = ({ userId, open, onClose }: Props) => {
+const GenderPrompt = ({ userId, open, currentGender, onClose }: Props) => {
   const [value, setValue] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => { if (!open) setValue(""); }, [open]);
+  useEffect(() => {
+    if (!open) {
+      setValue("");
+      return;
+    }
+    setValue(currentGender && currentGender !== "undisclosed" ? currentGender : "");
+  }, [open, currentGender]);
 
   const save = async () => {
     if (!value) return;
@@ -35,7 +42,7 @@ const GenderPrompt = ({ userId, open, onClose }: Props) => {
     <Dialog open={open} onOpenChange={(o) => !o && onClose(null)}>
       <DialogContent className="bg-slate-900 border-slate-700 text-white">
         <DialogHeader>
-          <DialogTitle>One quick thing 💌</DialogTitle>
+          <DialogTitle>{currentGender && currentGender !== "undisclosed" ? "Update your Soul Connect match" : "One quick thing 💌"}</DialogTitle>
           <DialogDescription className="text-slate-400">
             Soul Connect pairs your post with someone of the opposite gender for the first reply. We only use this to match — it stays private.
           </DialogDescription>
