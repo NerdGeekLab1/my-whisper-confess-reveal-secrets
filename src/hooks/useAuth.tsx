@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useCallback } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -12,13 +11,31 @@ export interface AppUser {
   isVerified: boolean;
   joinedDate: string;
   lastActive: string;
+  gender: string | null;
 }
 
-export const useAuth = () => {
+interface AuthContextValue {
+  user: AppUser | null;
+  loading: boolean;
+  showAuthModal: boolean;
+  setShowAuthModal: (show: boolean) => void;
+  handleAuth: (userData: AppUser) => void;
+  handleLogout: () => Promise<void>;
+  handleRestrictedAction: (action: string) => boolean;
+  handleDemoLogin: (accountType: "user" | "admin") => Promise<void>;
+  validateDemoCredentials: (email: string, password: string) => Promise<AppUser | null>;
+  refreshUser: () => Promise<void>;
+  updateUser: (updates: Partial<AppUser>) => void;
+}
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { toast } = useToast();
+  const ensuredUsersRef = useRef<Set<string>>(new Set());
 
   const ensureCurrentUserSetup = useCallback(async (authUser: User) => {
     try {
@@ -27,30 +44,35 @@ export const useAuth = () => {
         _email: authUser.email ?? "",
         _username: authUser.user_metadata?.username ?? null,
       });
+      ensuredUsersRef.current.add(authUser.id);
     } catch (error) {
       console.warn("ensure_current_user_setup failed", error);
     }
   }, []);
 
-  const fetchUserProfile = async (authUser: User): Promise<AppUser | null> => {
+  const fetchUserProfile = useCallback(async (authUser: User, options?: { skipEnsure?: boolean }): Promise<AppUser | null> => {
     try {
-      await ensureCurrentUserSetup(authUser);
+      if (!options?.skipEnsure && !ensuredUsersRef.current.has(authUser.id)) {
+        await ensureCurrentUserSetup(authUser);
+      }
 
-      // Get profile
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .single();
+      const [profileRes, roleRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("username, is_verified, joined_date, gender")
+          .eq("id", authUser.id)
+          .maybeSingle(),
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", authUser.id),
+      ]);
 
-      // Get role
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", authUser.id);
-
-      const isAdmin = roleData?.some((r: any) => r.role === "admin") ?? false;
-      const role = isAdmin ? "admin" : "user";
+      const profile = profileRes.data;
+      const roleData = roleRes.data;
+      const isAdmin = roleData?.some((r: { role: string }) => r.role === "admin") ?? false;
+      const isModerator = roleData?.some((r: { role: string }) => r.role === "moderator") ?? false;
+      const role = isAdmin ? "admin" : isModerator ? "moderator" : "user";
 
       return {
         id: authUser.id,
@@ -60,111 +82,151 @@ export const useAuth = () => {
         isVerified: profile?.is_verified || false,
         joinedDate: profile?.joined_date || new Date().toISOString(),
         lastActive: new Date().toISOString(),
+        gender: profile?.gender ?? null,
       };
-    } catch {
+    } catch (error) {
+      console.warn("fetchUserProfile failed", error);
       return null;
     }
-  };
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const appUser = await fetchUserProfile(session.user);
-        setUser(appUser);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const appUser = await fetchUserProfile(session.user);
-        setUser(appUser);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
   }, [ensureCurrentUserSetup]);
 
-  const handleAuth = (userData: AppUser) => {
-    setUser(userData);
-    const welcomeMessage = userData.role === 'admin'
-      ? "Welcome Admin! You have full access to all platform features."
-      : "Welcome to TruthSpace! You can now access all features.";
-    toast({
-      title: userData.role === 'admin' ? "Admin Access Granted" : "Welcome to TruthSpace!",
-      description: welcomeMessage,
-    });
-  };
+  const syncAuthUser = useCallback(async (authUser: User | null, options?: { skipEnsure?: boolean }) => {
+    if (!authUser) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
 
-  const handleLogout = async () => {
+    const appUser = await fetchUserProfile(authUser, options);
+    setUser(appUser);
+    setLoading(false);
+  }, [fetchUserProfile]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const bootstrap = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
+      await syncAuthUser(session?.user ?? null);
+    };
+
+    bootstrap();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "INITIAL_SESSION" || !mounted) return;
+      await syncAuthUser(session?.user ?? null, { skipEnsure: event === "TOKEN_REFRESHED" });
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [syncAuthUser]);
+
+  const handleAuth = useCallback((userData: AppUser) => {
+    setUser(userData);
+    toast({
+      title: userData.role === "admin" ? "Admin Access Granted" : "Welcome to TruthSpace!",
+      description: userData.role === "admin"
+        ? "Welcome Admin! You have full access to all platform features."
+        : "Welcome to TruthSpace! You can now access all features.",
+    });
+  }, [toast]);
+
+  const refreshUser = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setUser(null);
+      return;
+    }
+
+    const nextUser = await fetchUserProfile(session.user, { skipEnsure: true });
+    if (nextUser) {
+      setUser(nextUser);
+    }
+  }, [fetchUserProfile]);
+
+  const updateUser = useCallback((updates: Partial<AppUser>) => {
+    setUser((prev) => (prev ? { ...prev, ...updates } : prev));
+  }, []);
+
+  const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
     toast({
       title: "Logged out",
       description: "You've been safely logged out. Your anonymity remains protected.",
     });
-  };
+  }, [toast]);
 
-  const handleRestrictedAction = (action: string) => {
+  const handleRestrictedAction = useCallback((action: string) => {
     if (!user) {
       toast({
         title: "Login Required",
         description: `Please login to ${action}. All activities remain anonymous to the community.`,
-        variant: "destructive"
+        variant: "destructive",
       });
       setShowAuthModal(true);
       return false;
     }
     return true;
-  };
+  }, [toast, user]);
 
-  const handleDemoLogin = async (accountType: 'user' | 'admin') => {
-    const creds = accountType === 'admin'
+  const attemptDemoSignIn = useCallback(async (email: string, password: string) => {
+    let error: Error | null = null;
+    let authUser: User | null = null;
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await supabase.auth.signInWithPassword({ email, password });
+      error = response.error;
+      authUser = response.data.user ?? null;
+      if (authUser && !error) {
+        return { authUser, error: null };
+      }
+    }
+
+    return { authUser, error };
+  }, []);
+
+  const handleDemoLogin = useCallback(async (accountType: "user" | "admin") => {
+    const creds = accountType === "admin"
       ? { email: "admin@demo.com", password: "admin123" }
       : { email: "user@demo.com", password: "demo123" };
 
-    toast({ title: "Preparing demo access", description: "Syncing demo account and sample data." });
+    toast({ title: "Preparing demo access", description: "Getting the demo account ready." });
 
-    try {
-      await supabase.functions.invoke("seed-demo");
-    } catch (seedErr) {
-      console.error("seed-demo failed", seedErr);
-    }
+    let result = await attemptDemoSignIn(creds.email, creds.password);
 
-    let error = null as any;
-
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const response = await supabase.auth.signInWithPassword(creds);
-      error = response.error;
-
-      if (!error && response.data.user) {
-        await ensureCurrentUserSetup(response.data.user);
-        setShowAuthModal(false);
-        return;
+    if (result.error) {
+      try {
+        await supabase.functions.invoke("seed-demo");
+      } catch (seedErr) {
+        console.error("seed-demo failed", seedErr);
       }
-
-      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+      result = await attemptDemoSignIn(creds.email, creds.password);
     }
 
-    if (error) {
-      toast({ title: "Demo login failed", description: error.message, variant: "destructive" });
+    if (result.authUser) {
+      ensuredUsersRef.current.add(result.authUser.id);
+      setShowAuthModal(false);
       return;
     }
-  };
 
-  const validateDemoCredentials = async (email: string, password: string) => {
+    toast({
+      title: "Demo login failed",
+      description: result.error?.message || "Please try again in a moment.",
+      variant: "destructive",
+    });
+  }, [attemptDemoSignIn, toast]);
+
+  const validateDemoCredentials = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return null;
-    if (data.user) {
-      return await fetchUserProfile(data.user);
-    }
-    return null;
-  };
+    if (error || !data.user) return null;
+    return fetchUserProfile(data.user, { skipEnsure: true });
+  }, [fetchUserProfile]);
 
-  return {
+  const value = useMemo<AuthContextValue>(() => ({
     user,
     loading,
     showAuthModal,
@@ -173,6 +235,29 @@ export const useAuth = () => {
     handleLogout,
     handleRestrictedAction,
     handleDemoLogin,
-    validateDemoCredentials
-  };
+    validateDemoCredentials,
+    refreshUser,
+    updateUser,
+  }), [
+    user,
+    loading,
+    showAuthModal,
+    handleAuth,
+    handleLogout,
+    handleRestrictedAction,
+    handleDemoLogin,
+    validateDemoCredentials,
+    refreshUser,
+    updateUser,
+  ]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };
