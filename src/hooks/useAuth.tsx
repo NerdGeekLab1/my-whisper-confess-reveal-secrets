@@ -39,14 +39,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const ensureCurrentUserSetup = useCallback(async (authUser: User) => {
     try {
-      await supabase.rpc("ensure_current_user_setup", {
-        _user_id: authUser.id,
-        _email: authUser.email ?? "",
-        _username: authUser.user_metadata?.username ?? null,
+      const safeUsername = authUser.user_metadata?.username?.trim() || authUser.email?.split("@")[0] || "anonymous";
+      const { error } = await supabase.from("profiles").upsert({
+        id: authUser.id,
+        email: authUser.email ?? null,
+        username: safeUsername,
+        is_verified: false,
+        joined_date: new Date().toISOString(),
+        last_active: new Date().toISOString(),
       });
+
+      if (error) {
+        throw error;
+      }
+
       ensuredUsersRef.current.add(authUser.id);
     } catch (error) {
-      console.warn("ensure_current_user_setup failed", error);
+      console.warn("ensureCurrentUserSetup failed", error);
     }
   }, []);
 
