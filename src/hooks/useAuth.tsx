@@ -195,52 +195,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return true;
   }, [toast, user]);
 
-  const attemptDemoSignIn = useCallback(async (email: string, password: string) => {
-    let error: Error | null = null;
-    let authUser: User | null = null;
-
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const response = await supabase.auth.signInWithPassword({ email, password });
-      error = response.error;
-      authUser = response.data.user ?? null;
-      if (authUser && !error) {
-        return { authUser, error: null };
-      }
-    }
-
-    return { authUser, error };
-  }, []);
-
   const handleDemoLogin = useCallback(async (accountType: "user" | "admin") => {
     const creds = accountType === "admin"
       ? { email: "admin@demo.com", password: "admin123" }
       : { email: "user@demo.com", password: "demo123" };
 
-    toast({ title: "Preparing demo access", description: "Getting the demo account ready." });
+    let { data, error } = await supabase.auth.signInWithPassword(creds);
 
-    let result = await attemptDemoSignIn(creds.email, creds.password);
-
-    if (result.error) {
+    // Only seed if the credentials are actually invalid (account missing / drift)
+    if (error) {
       try {
         await supabase.functions.invoke("seed-demo");
       } catch (seedErr) {
         console.error("seed-demo failed", seedErr);
       }
-      result = await attemptDemoSignIn(creds.email, creds.password);
+      ({ data, error } = await supabase.auth.signInWithPassword(creds));
     }
 
-    if (result.authUser) {
-      ensuredUsersRef.current.add(result.authUser.id);
+    if (data?.user && !error) {
+      ensuredUsersRef.current.add(data.user.id);
       setShowAuthModal(false);
       return;
     }
 
     toast({
       title: "Demo login failed",
-      description: result.error?.message || "Please try again in a moment.",
+      description: error?.message || "Please try again in a moment.",
       variant: "destructive",
     });
-  }, [attemptDemoSignIn, toast]);
+  }, [toast]);
 
   const validateDemoCredentials = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
