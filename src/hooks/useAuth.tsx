@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         is_verified: false,
         joined_date: new Date().toISOString(),
         last_active: new Date().toISOString(),
-      });
+      }, { onConflict: "id", ignoreDuplicates: true });
 
       if (error) {
         throw error;
