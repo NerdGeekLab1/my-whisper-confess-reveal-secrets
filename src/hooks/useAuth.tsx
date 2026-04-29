@@ -37,32 +37,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const ensuredUsersRef = useRef<Set<string>>(new Set());
 
-  const ensureCurrentUserSetup = useCallback(async (authUser: User) => {
-    try {
-      const safeUsername = authUser.user_metadata?.username?.trim() || authUser.email?.split("@")[0] || "anonymous";
-      const { error } = await supabase.from("profiles").upsert({
-        id: authUser.id,
-        email: authUser.email ?? null,
-        username: safeUsername,
-        is_verified: false,
-        joined_date: new Date().toISOString(),
-        last_active: new Date().toISOString(),
-      }, { onConflict: "id", ignoreDuplicates: true });
-
-      if (error) {
-        throw error;
-      }
-
-      ensuredUsersRef.current.add(authUser.id);
-    } catch (error) {
-      console.warn("ensureCurrentUserSetup failed", error);
-    }
+  const ensureCurrentUserSetup = useCallback((authUser: User) => {
+    // Fire-and-forget — never block the UI on this. Trigger handle_new_user already
+    // creates the profile on signup; this is just a safety net for legacy users.
+    if (ensuredUsersRef.current.has(authUser.id)) return;
+    ensuredUsersRef.current.add(authUser.id);
+    const safeUsername = authUser.user_metadata?.username?.trim() || authUser.email?.split("@")[0] || "anonymous";
+    supabase.from("profiles").upsert({
+      id: authUser.id,
+      email: authUser.email ?? null,
+      username: safeUsername,
+      is_verified: false,
+      joined_date: new Date().toISOString(),
+      last_active: new Date().toISOString(),
+    }, { onConflict: "id", ignoreDuplicates: true }).then(({ error }) => {
+      if (error) console.warn("ensureCurrentUserSetup failed", error);
+    });
   }, []);
 
   const fetchUserProfile = useCallback(async (authUser: User, options?: { skipEnsure?: boolean }): Promise<AppUser | null> => {
     try {
-      if (!options?.skipEnsure && !ensuredUsersRef.current.has(authUser.id)) {
-        await ensureCurrentUserSetup(authUser);
+      if (!options?.skipEnsure) {
+        ensureCurrentUserSetup(authUser);
       }
 
       const [profileRes, roleRes] = await Promise.all([
