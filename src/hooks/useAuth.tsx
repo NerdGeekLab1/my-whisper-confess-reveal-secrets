@@ -109,18 +109,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
+    let lastSyncedUserId: string | null = null;
+
+    const sync = async (authUser: User | null, options?: { skipEnsure?: boolean }) => {
+      if (!mounted) return;
+      // Avoid duplicate fetch when bootstrap and INITIAL_SESSION/SIGNED_IN fire for the same user
+      const nextId = authUser?.id ?? null;
+      if (nextId === lastSyncedUserId && nextId !== null) {
+        setLoading(false);
+        return;
+      }
+      lastSyncedUserId = nextId;
+      await syncAuthUser(authUser, options);
+    };
 
     const bootstrap = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
-      await syncAuthUser(session?.user ?? null);
+      await sync(session?.user ?? null);
     };
 
     bootstrap();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "INITIAL_SESSION" || !mounted) return;
-      await syncAuthUser(session?.user ?? null, { skipEnsure: event === "TOKEN_REFRESHED" });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (event === "INITIAL_SESSION") return;
+      // Reset dedupe on sign-out / user change so we re-fetch
+      if (!session?.user || session.user.id !== lastSyncedUserId) {
+        lastSyncedUserId = null;
+      }
+      sync(session?.user ?? null, { skipEnsure: event === "TOKEN_REFRESHED" });
     });
 
     return () => {
