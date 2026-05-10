@@ -11,6 +11,7 @@ import { Eye, EyeOff, Save, Loader2, Settings, Key, CreditCard, Mail, MessageSqu
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction } from "@/lib/adminAudit";
+import HeadScriptsEditor from "./HeadScriptsEditor";
 
 interface AppSetting {
   id: string;
