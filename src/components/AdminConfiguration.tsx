@@ -333,6 +333,7 @@ const AdminConfiguration = () => {
         </Tabs>
       </CardContent>
     </Card>
+    </div>
   );
 };
 
