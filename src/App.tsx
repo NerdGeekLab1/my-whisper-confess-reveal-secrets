@@ -15,6 +15,7 @@ import ReportAbuse from "./pages/ReportAbuse";
 import DataProtection from "./pages/DataProtection";
 import SoulConnect from "./pages/SoulConnect";
 import { AuthProvider } from "./hooks/useAuth";
+import HeadScripts from "./components/HeadScripts";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <HeadScripts />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />

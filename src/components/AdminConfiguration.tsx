@@ -11,6 +11,7 @@ import { Eye, EyeOff, Save, Loader2, Settings, Key, CreditCard, Mail, MessageSqu
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction } from "@/lib/adminAudit";
+import HeadScriptsEditor from "./HeadScriptsEditor";
 
 interface AppSetting {
   id: string;
@@ -231,7 +232,9 @@ const AdminConfiguration = () => {
   };
 
   return (
-    <Card className="bg-slate-900 border-slate-700">
+    <div className="space-y-6">
+      <HeadScriptsEditor />
+      <Card className="bg-slate-900 border-slate-700">
       <CardHeader>
         <CardTitle className="text-white flex items-center">
           <Settings className="w-5 h-5 mr-2 text-blue-400" />
@@ -330,6 +333,7 @@ const AdminConfiguration = () => {
         </Tabs>
       </CardContent>
     </Card>
+    </div>
   );
 };
 
