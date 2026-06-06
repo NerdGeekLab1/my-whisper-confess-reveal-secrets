@@ -1,4 +1,5 @@
 import { Heart, Shield, FileText, Users, HelpCircle, Lock, Sparkles } from "lucide-react";
+import snakesListLogo from "@/assets/snakeslist-logo.png.asset.json";
 
 interface FooterProps {
   setCurrentPage?: (page: string) => void;
@@ -28,10 +29,8 @@ const Footer = ({ setCurrentPage }: FooterProps = {}) => {
               className="flex items-center space-x-3 mb-4 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => handleInternalNavigation("confessions")}
             >
-              <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <Heart className="w-5 h-5 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-white">TruthSpace</h3>
+              <img src={snakesListLogo.url} alt="SnakesList logo" className="w-8 h-8 object-contain" />
+              <h3 className="text-xl font-bold text-white tracking-wide">SnakesList</h3>
             </div>
             <p className="text-slate-400 mb-4 max-w-md">
               A safe, anonymous platform for sharing experiences, seeking support, and building a community of healing and truth.
@@ -179,7 +178,7 @@ const Footer = ({ setCurrentPage }: FooterProps = {}) => {
         {/* Copyright */}
         <div className="border-t border-slate-800 pt-8 mt-8 text-center">
           <p className="text-slate-500 text-sm">
-            © 2024 TruthSpace. All rights reserved. Built with care for mental health awareness.
+            © 2024 SnakesList. All rights reserved. Built with care for mental health awareness.
           </p>
         </div>
       </div>

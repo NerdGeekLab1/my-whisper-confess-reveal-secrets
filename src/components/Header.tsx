@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, MessageCircle, Search, BookOpen, User, LogOut, Shield, Star, Bot } from "lucide-react";
+import snakesListLogo from "@/assets/snakeslist-logo.png.asset.json";
 
 interface HeaderProps {
   currentPage: string;
@@ -35,12 +36,10 @@ const Header = ({
             className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={handleBrandClick}
           >
-            <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center">
-              <Heart className="w-6 h-6 text-white" />
-            </div>
+            <img src={snakesListLogo.url} alt="SnakesList logo" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]" />
             <div>
-              <h1 className="text-2xl font-bold text-white">TruthSpace</h1>
-              <p className="text-sm text-slate-400">Anonymous confessions & support</p>
+              <h1 className="text-2xl font-bold text-white tracking-wide">SnakesList</h1>
+              <p className="text-sm text-slate-400">Hidden truths. Shared strength.</p>
             </div>
           </div>
 

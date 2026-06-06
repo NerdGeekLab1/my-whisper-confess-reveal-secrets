@@ -15,7 +15,7 @@ const TermsOfService = () => {
           onClick={() => navigate("/")}
           className="mb-6 border-slate-600 text-slate-300 hover:bg-slate-800"
         >
-          ← Back to TruthSpace
+          ← Back to SnakesList
         </Button>
 
         <div className="mb-8">
@@ -36,11 +36,11 @@ const TermsOfService = () => {
             </CardHeader>
             <CardContent className="text-slate-300 space-y-4">
               <p>
-                By accessing and using TruthSpace, you accept and agree to be bound by the terms and provision of this agreement. 
+                By accessing and using SnakesList, you accept and agree to be bound by the terms and provision of this agreement. 
                 If you do not agree to abide by the above, please do not use this service.
               </p>
               <p>
-                TruthSpace is a platform designed to provide a safe space for sharing experiences, seeking support, and connecting 
+                SnakesList is a platform designed to provide a safe space for sharing experiences, seeking support, and connecting 
                 with others who have faced similar challenges.
               </p>
             </CardContent>
@@ -101,14 +101,14 @@ const TermsOfService = () => {
               <h3 className="text-lg font-semibold text-white">Your Content</h3>
               <ul className="list-disc pl-6 space-y-2">
                 <li>You retain ownership of content you post</li>
-                <li>You grant TruthSpace a license to display and distribute your content</li>
+                <li>You grant SnakesList a license to display and distribute your content</li>
                 <li>You represent that you have the right to post your content</li>
                 <li>You may delete your content at any time</li>
               </ul>
 
               <h3 className="text-lg font-semibold text-white mt-4">Platform Content</h3>
               <ul className="list-disc pl-6 space-y-2">
-                <li>TruthSpace retains ownership of platform features and design</li>
+                <li>SnakesList retains ownership of platform features and design</li>
                 <li>You may not reproduce or distribute platform content without permission</li>
                 <li>All trademarks and service marks are property of their respective owners</li>
               </ul>
@@ -143,7 +143,7 @@ const TermsOfService = () => {
               </p>
               <div className="bg-amber-900/50 border border-amber-600 rounded-lg p-4">
                 <p className="text-amber-200">
-                  <strong>Mental Health Notice:</strong> TruthSpace provides peer support but is not a 
+                  <strong>Mental Health Notice:</strong> SnakesList provides peer support but is not a 
                   substitute for professional mental health services. If you are experiencing a mental 
                   health emergency, please contact emergency services immediately.
                 </p>

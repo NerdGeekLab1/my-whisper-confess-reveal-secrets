@@ -15,7 +15,7 @@ const DataProtection = () => {
           onClick={() => navigate("/")}
           className="mb-6 border-slate-600 text-slate-300 hover:bg-slate-800"
         >
-          ← Back to TruthSpace
+          ← Back to SnakesList
         </Button>
 
         <div className="mb-8">
@@ -161,8 +161,8 @@ const DataProtection = () => {
                 <div className="bg-slate-800 p-4 rounded-lg">
                   <h3 className="font-semibold text-white mb-2">Email</h3>
                   <p className="text-sm mb-2">Send your request to:</p>
-                  <a href="mailto:privacy@truthspace.app" className="text-blue-400 hover:text-blue-300">
-                    privacy@truthspace.app
+                  <a href="mailto:privacy@snakeslist.app" className="text-blue-400 hover:text-blue-300">
+                    privacy@snakeslist.app
                   </a>
                 </div>
                 

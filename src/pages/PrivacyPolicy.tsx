@@ -15,7 +15,7 @@ const PrivacyPolicy = () => {
           onClick={() => navigate("/")}
           className="mb-6 border-slate-600 text-slate-300 hover:bg-slate-800"
         >
-          ← Back to TruthSpace
+          ← Back to SnakesList
         </Button>
 
         <div className="mb-8">
@@ -35,7 +35,7 @@ const PrivacyPolicy = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300 space-y-4">
-              <p>At TruthSpace, we collect minimal information to provide our services:</p>
+              <p>At SnakesList, we collect minimal information to provide our services:</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>Email address and username for account creation</li>
                 <li>Anonymous confession and diary content</li>

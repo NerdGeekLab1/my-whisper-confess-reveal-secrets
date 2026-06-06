@@ -45,7 +45,7 @@ const ReportAbuse = () => {
           onClick={() => navigate("/")}
           className="mb-6 border-slate-600 text-slate-300 hover:bg-slate-800"
         >
-          ← Back to TruthSpace
+          ← Back to SnakesList
         </Button>
 
         <div className="mb-8">
@@ -163,8 +163,8 @@ const ReportAbuse = () => {
                   <Mail className="w-5 h-5 text-blue-400" />
                   <div>
                     <p className="font-medium">Email Reports</p>
-                    <a href="mailto:abuse@truthspace.app" className="text-blue-400 hover:text-blue-300 text-sm">
-                      abuse@truthspace.app
+                    <a href="mailto:abuse@snakeslist.app" className="text-blue-400 hover:text-blue-300 text-sm">
+                      abuse@snakeslist.app
                     </a>
                   </div>
                 </div>
