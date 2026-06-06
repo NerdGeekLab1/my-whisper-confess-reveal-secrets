@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, MessageCircle, Search, BookOpen, User, LogOut, Shield, Star, Bot } from "lucide-react";
+import snakesListLogo from "@/assets/snakeslist-logo.png.asset.json";
 
 interface HeaderProps {
   currentPage: string;
