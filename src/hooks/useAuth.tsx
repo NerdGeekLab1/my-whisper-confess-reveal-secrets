@@ -149,10 +149,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const handleAuth = useCallback((userData: AppUser) => {
     setUser(userData);
     toast({
-      title: userData.role === "admin" ? "Admin Access Granted" : "Welcome to TruthSpace!",
+      title: userData.role === "admin" ? "Admin Access Granted" : "Welcome to SnakesList!",
       description: userData.role === "admin"
         ? "Welcome Admin! You have full access to all platform features."
-        : "Welcome to TruthSpace! You can now access all features.",
+        : "Welcome to SnakesList! You can now access all features.",
     });
   }, [toast]);
 

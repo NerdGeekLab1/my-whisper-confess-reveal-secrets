@@ -31,7 +31,7 @@ const Footer = ({ setCurrentPage }: FooterProps = {}) => {
               <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center">
                 <Heart className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-white">TruthSpace</h3>
+              <h3 className="text-xl font-bold text-white">SnakesList</h3>
             </div>
             <p className="text-slate-400 mb-4 max-w-md">
               A safe, anonymous platform for sharing experiences, seeking support, and building a community of healing and truth.
@@ -179,7 +179,7 @@ const Footer = ({ setCurrentPage }: FooterProps = {}) => {
         {/* Copyright */}
         <div className="border-t border-slate-800 pt-8 mt-8 text-center">
           <p className="text-slate-500 text-sm">
-            © 2024 TruthSpace. All rights reserved. Built with care for mental health awareness.
+            © 2024 SnakesList. All rights reserved. Built with care for mental health awareness.
           </p>
         </div>
       </div>

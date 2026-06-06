@@ -9,9 +9,9 @@ const FeatureDocumentation = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">
       <div className="container mx-auto max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">TruthSpace Feature Documentation</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">SnakesList Feature Documentation</h1>
           <p className="text-slate-400 text-lg">
-            Comprehensive guide to all implemented and planned features in the TruthSpace platform
+            Comprehensive guide to all implemented and planned features in the SnakesList platform
           </p>
         </div>
 

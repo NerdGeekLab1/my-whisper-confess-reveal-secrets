@@ -39,7 +39,7 @@ const Header = ({
               <Heart className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">TruthSpace</h1>
+              <h1 className="text-2xl font-bold text-white">SnakesList</h1>
               <p className="text-sm text-slate-400">Anonymous confessions & support</p>
             </div>
           </div>

@@ -13,7 +13,7 @@ const TechDocsHeader = () => {
         onClick={() => navigate("/")}
         className="mb-6 border-slate-600 text-slate-300 hover:bg-slate-800"
       >
-        ← Back to TruthSpace
+        ← Back to SnakesList
       </Button>
 
       <div className="mb-8">
@@ -21,7 +21,7 @@ const TechDocsHeader = () => {
           <Code className="w-10 h-10 mr-4 text-blue-400" />
           Technical Documentation
         </h1>
-        <p className="text-slate-400 text-lg">Complete technical overview and roadmap for TruthSpace platform</p>
+        <p className="text-slate-400 text-lg">Complete technical overview and roadmap for SnakesList platform</p>
       </div>
     </>
   );

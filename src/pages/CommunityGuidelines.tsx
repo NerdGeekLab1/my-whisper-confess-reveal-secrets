@@ -15,7 +15,7 @@ const CommunityGuidelines = () => {
           onClick={() => navigate("/")}
           className="mb-6 border-slate-600 text-slate-300 hover:bg-slate-800"
         >
-          ← Back to TruthSpace
+          ← Back to SnakesList
         </Button>
 
         <div className="mb-8">
