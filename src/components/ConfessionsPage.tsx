@@ -18,7 +18,24 @@ interface ConfessionsPageProps {
   setCurrentPage: (page: string) => void;
 }
 
+type TabKey = "recent" | "trending" | "supported";
 const PAGE_SIZE = 10;
+
+interface FeedState {
+  posts: any[];
+  loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  page: number;
+}
+
+const initialFeed = (): FeedState => ({
+  posts: [],
+  loading: true,
+  loadingMore: false,
+  hasMore: true,
+  page: 0,
+});
 
 const ConfessionsPage = ({
   user,
@@ -27,95 +44,124 @@ const ConfessionsPage = ({
   setShowAuthModal,
   setCurrentPage,
 }: ConfessionsPageProps) => {
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const newestCreatedAtRef = useRef<string | null>(null);
-  const seenIdsRef = useRef<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<TabKey>("recent");
+  const [feeds, setFeeds] = useState<Record<TabKey, FeedState>>({
+    recent: initialFeed(),
+    trending: initialFeed(),
+    supported: initialFeed(),
+  });
   const topRef = useRef<HTMLDivElement | null>(null);
-  // Buffer realtime inserts that arrive while the user is loading older pages,
-  // so we don't shift the cursor / list mid-fetch.
-  const pendingInsertsRef = useRef<any[]>([]);
-  const loadingMoreRef = useRef(false);
-  const [bufferedCount, setBufferedCount] = useState(0);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const loadingRef = useRef<Record<TabKey, boolean>>({
+    recent: false,
+    trending: false,
+    supported: false,
+  });
 
-  // Cursor-based fetch: pass `before` (created_at) to load older items.
-  const fetchPage = useCallback(
-    async (before: string | null) => {
-      let query = supabase
-        .from("posts")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(PAGE_SIZE);
+  // Build a query per tab. Range-based pagination keeps each ordering simple.
+  const buildQuery = useCallback(
+    (tab: TabKey, from: number, to: number) => {
+      let q = supabase.from("posts").select("*", { count: "exact" }).range(from, to);
+      if (selectedCategory !== "all") q = q.eq("category", selectedCategory);
 
-      if (selectedCategory !== "all") {
-        query = query.eq("category", selectedCategory);
+      if (tab === "trending") {
+        // Last 7 days, most recent first — reflects current activity.
+        const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        q = q.gte("created_at", since).order("created_at", { ascending: false });
+      } else if (tab === "supported") {
+        // Least-reported first, then oldest enduring posts the community kept.
+        q = q
+          .order("reports_count", { ascending: true })
+          .order("created_at", { ascending: true });
+      } else {
+        q = q.order("created_at", { ascending: false });
       }
-      if (before) {
-        query = query.lt("created_at", before);
-      }
+      return q;
+    },
+    [selectedCategory]
+  );
 
-      const { data, error } = await query;
+  const fetchTab = useCallback(
+    async (tab: TabKey, page: number) => {
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data, error } = await buildQuery(tab, from, to);
       if (error) {
         console.warn("posts fetch error", error);
         return [];
       }
       return data ?? [];
     },
-    [selectedCategory]
+    [buildQuery]
   );
 
-  const loadInitial = useCallback(async () => {
-    setLoading(true);
-    seenIdsRef.current = new Set();
-    const data = await fetchPage(null);
-    data.forEach((p: any) => seenIdsRef.current.add(p.id));
-    setPosts(data);
-    setHasMore(data.length === PAGE_SIZE);
-    if (data[0]?.created_at) newestCreatedAtRef.current = data[0].created_at;
-    setLoading(false);
-  }, [fetchPage]);
+  const loadInitial = useCallback(
+    async (tab: TabKey) => {
+      setFeeds((f) => ({ ...f, [tab]: { ...initialFeed() } }));
+      const data = await fetchTab(tab, 0);
+      setFeeds((f) => ({
+        ...f,
+        [tab]: {
+          posts: data,
+          loading: false,
+          loadingMore: false,
+          hasMore: data.length === PAGE_SIZE,
+          page: 0,
+        },
+      }));
+    },
+    [fetchTab]
+  );
 
-  const flushBufferedInserts = useCallback(() => {
-    if (pendingInsertsRef.current.length === 0) return;
-    const buffered = pendingInsertsRef.current;
-    pendingInsertsRef.current = [];
-    setBufferedCount(0);
-    setPosts((prev) => {
-      const fresh = buffered.filter((p) => !prev.some((x) => x.id === p.id));
-      fresh.forEach((p) => seenIdsRef.current.add(p.id));
-      return [...fresh, ...prev];
-    });
-  }, []);
+  const loadMore = useCallback(
+    async (tab: TabKey) => {
+      if (loadingRef.current[tab]) return;
+      const current = feeds[tab];
+      if (!current.hasMore || current.loading) return;
+      loadingRef.current[tab] = true;
+      setFeeds((f) => ({ ...f, [tab]: { ...f[tab], loadingMore: true } }));
+      const nextPage = current.page + 1;
+      const data = await fetchTab(tab, nextPage);
+      setFeeds((f) => {
+        const seen = new Set(f[tab].posts.map((p) => p.id));
+        const fresh = data.filter((p: any) => !seen.has(p.id));
+        return {
+          ...f,
+          [tab]: {
+            posts: [...f[tab].posts, ...fresh],
+            loading: false,
+            loadingMore: false,
+            hasMore: data.length === PAGE_SIZE,
+            page: nextPage,
+          },
+        };
+      });
+      loadingRef.current[tab] = false;
+    },
+    [fetchTab, feeds]
+  );
 
-  const loadMore = useCallback(async () => {
-    if (loadingMoreRef.current || !hasMore) return;
-    loadingMoreRef.current = true;
-    setLoadingMore(true);
-    const oldest = posts[posts.length - 1]?.created_at ?? null;
-    const data = await fetchPage(oldest);
-    const fresh = data.filter((p: any) => !seenIdsRef.current.has(p.id));
-    fresh.forEach((p: any) => seenIdsRef.current.add(p.id));
-    setPosts((prev) => [...prev, ...fresh]);
-    setHasMore(data.length === PAGE_SIZE);
-    setLoadingMore(false);
-    loadingMoreRef.current = false;
-    // Now that pagination settled, merge any inserts that arrived during the fetch
-    flushBufferedInserts();
-  }, [fetchPage, hasMore, posts, flushBufferedInserts]);
-
-  // Reload from top when category changes
+  // Reload active tab when category or tab changes
   useEffect(() => {
-    loadInitial();
-  }, [loadInitial]);
+    loadInitial(activeTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, activeTab]);
 
-  const scrollToTop = useCallback(async () => {
-    await loadInitial();
-    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [loadInitial]);
+  // Infinite scroll via IntersectionObserver on the sentinel
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore(activeTab);
+      },
+      { rootMargin: "400px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [activeTab, loadMore]);
 
-  // Realtime: prepend new approved posts and toast
+  // Realtime: prepend new approved posts to the recent tab
   useEffect(() => {
     const channel = supabase
       .channel("posts-feed")
@@ -124,36 +170,22 @@ const ConfessionsPage = ({
         { event: "INSERT", schema: "public", table: "posts" },
         (payload) => {
           const p = payload.new as any;
-          if (!p?.id || seenIdsRef.current.has(p.id)) return;
-
-          const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
-          const isVisible = p.status === "approved" || (user && p.user_id === user.id);
+          if (!p?.id) return;
+          const matchesCategory =
+            selectedCategory === "all" || p.category === selectedCategory;
+          const isVisible =
+            p.status === "approved" || (user && p.user_id === user.id);
           if (!matchesCategory || !isVisible) return;
 
-          seenIdsRef.current.add(p.id);
-          if (p.created_at) newestCreatedAtRef.current = p.created_at;
-
-          // If user is loading older pages, buffer the insert to avoid shifting the cursor.
-          if (loadingMoreRef.current) {
-            pendingInsertsRef.current = [p, ...pendingInsertsRef.current];
-            setBufferedCount(pendingInsertsRef.current.length);
-            toast("New confession posted", {
-              description: "Will appear after older posts finish loading.",
-            });
-            return;
-          }
-
-          // Prepend so the new item is reachable as the user scrolls or via "View".
-          setPosts((prev) => [p, ...prev]);
-
+          setFeeds((f) => {
+            if (f.recent.posts.some((x) => x.id === p.id)) return f;
+            return {
+              ...f,
+              recent: { ...f.recent, posts: [p, ...f.recent.posts] },
+            };
+          });
           toast("New confession posted", {
-            description: p.title || "A new story was shared with the community.",
-            action: {
-              label: "View",
-              onClick: () => {
-                topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-              },
-            },
+            description: p.title || "A new story was shared.",
           });
         }
       )
@@ -163,7 +195,7 @@ const ConfessionsPage = ({
     };
   }, [selectedCategory, user]);
 
-  const confessions = posts.map((p) => ({
+  const mapPost = (p: any) => ({
     id: p.id,
     title: p.title,
     content: p.content,
@@ -174,7 +206,59 @@ const ConfessionsPage = ({
     isVerified: false,
     tags: [],
     status: p.status,
-  }));
+  });
+
+  const renderFeed = (tab: TabKey) => {
+    const state = feeds[tab];
+    if (state.loading) {
+      return (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 text-white animate-spin" />
+        </div>
+      );
+    }
+    if (state.posts.length === 0) {
+      return (
+        <p className="text-center text-slate-400 py-8">
+          {tab === "trending"
+            ? "No trending confessions in the last 7 days."
+            : tab === "supported"
+            ? "No supported confessions yet."
+            : "No confessions yet. Be the first to share your story."}
+        </p>
+      );
+    }
+    return (
+      <>
+        {state.posts.map((p) => (
+          <ConfessionCard key={p.id} confession={mapPost(p)} />
+        ))}
+        <div ref={sentinelRef} className="h-1" />
+        {state.loadingMore && (
+          <div className="flex justify-center py-4">
+            <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+          </div>
+        )}
+        {state.hasMore && !state.loadingMore && (
+          <div className="flex justify-center mt-2">
+            <Button
+              variant="outline"
+              onClick={() => loadMore(tab)}
+              className="border-slate-600 text-slate-300"
+            >
+              <ArrowDown className="w-4 h-4 mr-2" />
+              Load more
+            </Button>
+          </div>
+        )}
+        {!state.hasMore && (
+          <p className="text-center text-slate-500 text-sm mt-6">
+            You've reached the end of the feed.
+          </p>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -188,9 +272,14 @@ const ConfessionsPage = ({
                 <Lock className="w-5 h-5 text-amber-400" />
                 <div>
                   <p className="text-amber-200 font-medium">Login to unlock all features</p>
-                  <p className="text-amber-300 text-sm">Create an account to post confessions, access your diary, and search our database.</p>
+                  <p className="text-amber-300 text-sm">
+                    Create an account to post confessions, access your diary, and search our database.
+                  </p>
                 </div>
-                <Button onClick={() => setShowAuthModal(true)} className="bg-amber-600 hover:bg-amber-700 text-white">
+                <Button
+                  onClick={() => setShowAuthModal(true)}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
                   Login Now
                 </Button>
               </div>
@@ -199,79 +288,41 @@ const ConfessionsPage = ({
         )}
 
         <div className="mb-8">
-          <CategoryFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
+          <CategoryFilter
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
         </div>
 
-        {bufferedCount > 0 && (
-          <div className="flex justify-center mb-4">
-            <Button
-              onClick={() => {
-                flushBufferedInserts();
-                topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-              className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
-              size="sm"
-            >
-              ↑ Show {bufferedCount} new {bufferedCount === 1 ? "confession" : "confessions"}
-            </Button>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 text-white animate-spin" />
-          </div>
-        ) : (
-          <>
-            <Tabs defaultValue="recent" className="mb-8">
-              <TabsList className="grid w-full grid-cols-3 bg-slate-800 border-slate-700">
-                <TabsTrigger value="recent" className="text-slate-300 data-[state=active]:text-white">
-                  <Clock className="w-4 h-4 mr-2" />Recent
-                </TabsTrigger>
-                <TabsTrigger value="trending" className="text-slate-300 data-[state=active]:text-white">
-                  <TrendingUp className="w-4 h-4 mr-2" />Trending
-                </TabsTrigger>
-                <TabsTrigger value="supported" className="text-slate-300 data-[state=active]:text-white">
-                  <Heart className="w-4 h-4 mr-2" />Most Supported
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="recent" className="space-y-6 mt-6">
-                {confessions.length === 0 ? (
-                  <p className="text-center text-slate-400 py-8">No confessions yet. Be the first to share your story.</p>
-                ) : (
-                  confessions.map((c) => <ConfessionCard key={c.id} confession={c} />)
-                )}
-              </TabsContent>
-              <TabsContent value="trending" className="space-y-6 mt-6">
-                {confessions.map((c) => <ConfessionCard key={c.id} confession={c} />)}
-              </TabsContent>
-              <TabsContent value="supported" className="space-y-6 mt-6">
-                {confessions.map((c) => <ConfessionCard key={c.id} confession={c} />)}
-              </TabsContent>
-            </Tabs>
-
-            {/* Cursor pagination — Load more */}
-            {hasMore && confessions.length > 0 && (
-              <div className="flex justify-center mt-6">
-                <Button
-                  variant="outline"
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                  className="border-slate-600 text-slate-300"
-                >
-                  {loadingMore ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Loading...</>
-                  ) : (
-                    <><ArrowDown className="w-4 h-4 mr-2" />Load older confessions</>
-                  )}
-                </Button>
-              </div>
-            )}
-            {!hasMore && confessions.length > 0 && (
-              <p className="text-center text-slate-500 text-sm mt-6">You've reached the end of the feed.</p>
-            )}
-          </>
-        )}
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as TabKey)}
+          className="mb-8"
+        >
+          <TabsList className="grid w-full grid-cols-3 bg-slate-800 border-slate-700">
+            <TabsTrigger value="recent" className="text-slate-300 data-[state=active]:text-white">
+              <Clock className="w-4 h-4 mr-2" />
+              Recent
+            </TabsTrigger>
+            <TabsTrigger value="trending" className="text-slate-300 data-[state=active]:text-white">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Trending
+            </TabsTrigger>
+            <TabsTrigger value="supported" className="text-slate-300 data-[state=active]:text-white">
+              <Heart className="w-4 h-4 mr-2" />
+              Most Supported
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="recent" className="space-y-6 mt-6">
+            {renderFeed("recent")}
+          </TabsContent>
+          <TabsContent value="trending" className="space-y-6 mt-6">
+            {renderFeed("trending")}
+          </TabsContent>
+          <TabsContent value="supported" className="space-y-6 mt-6">
+            {renderFeed("supported")}
+          </TabsContent>
+        </Tabs>
       </div>
 
       <div className="lg:col-span-1">
