@@ -48,7 +48,7 @@ const Header = ({
             <Button
               variant="ghost"
               onClick={() => setCurrentPage("confessions")}
-              className={currentPage === "confessions" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "confessions" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <MessageCircle className="w-4 h-4 mr-2" />
               Confessions
@@ -60,7 +60,7 @@ const Header = ({
                   setCurrentPage("search");
                 }
               }}
-              className={currentPage === "search" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "search" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <Search className="w-4 h-4 mr-2" />
               Partner Check
@@ -72,7 +72,7 @@ const Header = ({
                   setCurrentPage("loyalty-score");
                 }
               }}
-              className={currentPage === "loyalty-score" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "loyalty-score" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <Star className="w-4 h-4 mr-2" />
               Loyalty Score
@@ -84,7 +84,7 @@ const Header = ({
                   setCurrentPage("diary");
                 }
               }}
-              className={currentPage === "diary" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "diary" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <BookOpen className="w-4 h-4 mr-2" />
               My Diary
@@ -92,7 +92,7 @@ const Header = ({
             <Button
               variant="ghost"
               onClick={() => setCurrentPage("helpline")}
-              className={currentPage === "helpline" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "helpline" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <Heart className="w-4 h-4 mr-2" />
               Support
@@ -104,7 +104,7 @@ const Header = ({
                   setCurrentPage("ai-chat");
                 }
               }}
-              className={currentPage === "ai-chat" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "ai-chat" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <Bot className="w-4 h-4 mr-2" />
               AI Chat
@@ -113,7 +113,7 @@ const Header = ({
               <Button
                 variant="ghost"
                 onClick={() => setCurrentPage("dashboard")}
-                className={currentPage === "dashboard" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+                size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "dashboard" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
               >
                 {user.role === "admin" ? (
                   <>
