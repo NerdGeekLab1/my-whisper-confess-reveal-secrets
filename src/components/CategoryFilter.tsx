@@ -28,18 +28,25 @@ const CategoryFilter = ({ selectedCategory, onCategoryChange }: CategoryFilterPr
           <Button
             key={category.id}
             variant="outline"
+            size="sm"
             onClick={() => onCategoryChange(category.id)}
             className={cn(
-              "border-slate-600 text-slate-300 hover:bg-slate-800 transition-colors",
+              "bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white hover:border-slate-500 transition-colors",
               selectedCategory === category.id && "bg-slate-700 border-slate-500 text-white"
             )}
           >
             {category.label}
-            <Badge className="ml-2 bg-slate-600 text-slate-300 text-xs">
+            <Badge className={cn(
+              "ml-2 text-xs border border-slate-600/50",
+              selectedCategory === category.id
+                ? "bg-slate-900/60 text-slate-100"
+                : "bg-slate-800 text-slate-300"
+            )}>
               {category.count}
             </Badge>
           </Button>
         ))}
+
       </div>
     </div>
   );
