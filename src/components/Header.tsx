@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Search, BookOpen, User, LogOut, Shield, Star, Bot } from "lucide-react";
+import { Heart, MessageCircle, Search, BookOpen, User, LogOut, Shield, Star } from "lucide-react";
 import snakesListLogo from "@/assets/snakeslist-logo.png.asset.json";
 
 interface HeaderProps {
@@ -96,18 +96,6 @@ const Header = ({
             >
               <Heart className="w-4 h-4 mr-2" />
               Support
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                if (handleRestrictedAction("access AI support chat")) {
-                  setCurrentPage("ai-chat");
-                }
-              }}
-              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "ai-chat" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
-            >
-              <Bot className="w-4 h-4 mr-2" />
-              AI Chat
             </Button>
             {user && (
               <Button
