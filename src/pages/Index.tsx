@@ -5,6 +5,7 @@ import PageRouter from "@/components/PageRouter";
 import Footer from "@/components/Footer";
 import PostCreator from "@/components/PostCreator";
 import AuthModal from "@/components/AuthModal";
+import FloatingAIChat from "@/components/FloatingAIChat";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
