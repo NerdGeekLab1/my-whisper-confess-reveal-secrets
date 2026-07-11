@@ -72,6 +72,16 @@ const Index = () => {
         onDemoLogin={handleDemoLogin}
         validateDemoCredentials={validateDemoCredentials}
       />
+
+      {/* Floating AI Chat launcher */}
+      <FloatingAIChat
+        currentPage={currentPage}
+        onOpen={() => {
+          if (handleRestrictedAction("access AI support chat")) {
+            setCurrentPage("ai-chat");
+          }
+        }}
+      />
     </div>
   );
 };
