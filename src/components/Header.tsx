@@ -30,25 +30,25 @@ const Header = ({
 
   return (
     <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between gap-4 flex-wrap lg:flex-nowrap">
           <div 
-            className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
+            className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
             onClick={handleBrandClick}
           >
-            <img src={snakesListLogo.url} alt="SnakesList logo" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]" />
-            <div>
-              <h1 className="text-2xl font-bold text-white tracking-wide">SnakesList</h1>
-              <p className="text-sm text-slate-400">Hidden truths. Shared strength.</p>
+            <img src={snakesListLogo.url} alt="SnakesList logo" className="w-9 h-9 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]" />
+            <div className="leading-tight">
+              <h1 className="text-xl font-bold text-white tracking-wide">SnakesList</h1>
+              <p className="text-[11px] text-slate-400 hidden sm:block">Hidden truths. Shared strength.</p>
             </div>
           </div>
 
           {/* Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden lg:flex items-center gap-1 flex-1 justify-center min-w-0">
             <Button
               variant="ghost"
               onClick={() => setCurrentPage("confessions")}
-              className={currentPage === "confessions" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "confessions" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <MessageCircle className="w-4 h-4 mr-2" />
               Confessions
@@ -60,7 +60,7 @@ const Header = ({
                   setCurrentPage("search");
                 }
               }}
-              className={currentPage === "search" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "search" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <Search className="w-4 h-4 mr-2" />
               Partner Check
@@ -72,7 +72,7 @@ const Header = ({
                   setCurrentPage("loyalty-score");
                 }
               }}
-              className={currentPage === "loyalty-score" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "loyalty-score" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <Star className="w-4 h-4 mr-2" />
               Loyalty Score
@@ -84,7 +84,7 @@ const Header = ({
                   setCurrentPage("diary");
                 }
               }}
-              className={currentPage === "diary" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "diary" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <BookOpen className="w-4 h-4 mr-2" />
               My Diary
@@ -92,7 +92,7 @@ const Header = ({
             <Button
               variant="ghost"
               onClick={() => setCurrentPage("helpline")}
-              className={currentPage === "helpline" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "helpline" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <Heart className="w-4 h-4 mr-2" />
               Support
@@ -104,7 +104,7 @@ const Header = ({
                   setCurrentPage("ai-chat");
                 }
               }}
-              className={currentPage === "ai-chat" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+              size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "ai-chat" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
               <Bot className="w-4 h-4 mr-2" />
               AI Chat
@@ -113,7 +113,7 @@ const Header = ({
               <Button
                 variant="ghost"
                 onClick={() => setCurrentPage("dashboard")}
-                className={currentPage === "dashboard" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white"}
+                size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "dashboard" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
               >
                 {user.role === "admin" ? (
                   <>
@@ -130,11 +130,12 @@ const Header = ({
             )}
           </div>
 
-          <div className="flex items-center space-x-4">
-            <Badge variant="outline" className="border-slate-600 text-slate-300">
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant="outline" className="hidden xl:inline-flex border-slate-600 text-slate-300">
               <Shield className="w-3 h-3 mr-1" />
               100% Anonymous
             </Badge>
+
             
             {user ? (
               <div className="flex items-center space-x-2">
