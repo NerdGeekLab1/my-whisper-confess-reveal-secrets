@@ -30,21 +30,21 @@ const Header = ({
 
   return (
     <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between gap-4 flex-wrap lg:flex-nowrap">
           <div 
-            className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
+            className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
             onClick={handleBrandClick}
           >
-            <img src={snakesListLogo.url} alt="SnakesList logo" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]" />
-            <div>
-              <h1 className="text-2xl font-bold text-white tracking-wide">SnakesList</h1>
-              <p className="text-sm text-slate-400">Hidden truths. Shared strength.</p>
+            <img src={snakesListLogo.url} alt="SnakesList logo" className="w-9 h-9 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]" />
+            <div className="leading-tight">
+              <h1 className="text-xl font-bold text-white tracking-wide">SnakesList</h1>
+              <p className="text-[11px] text-slate-400 hidden sm:block">Hidden truths. Shared strength.</p>
             </div>
           </div>
 
           {/* Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden lg:flex items-center gap-1 flex-1 justify-center min-w-0">
             <Button
               variant="ghost"
               onClick={() => setCurrentPage("confessions")}
