@@ -130,11 +130,12 @@ const Header = ({
             )}
           </div>
 
-          <div className="flex items-center space-x-4">
-            <Badge variant="outline" className="border-slate-600 text-slate-300">
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant="outline" className="hidden xl:inline-flex border-slate-600 text-slate-300">
               <Shield className="w-3 h-3 mr-1" />
               100% Anonymous
             </Badge>
+
             
             {user ? (
               <div className="flex items-center space-x-2">
