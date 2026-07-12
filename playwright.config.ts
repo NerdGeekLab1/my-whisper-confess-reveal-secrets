@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Allow using a pre-installed Chromium (e.g. inside CI sandboxes) instead of
+// forcing `npx playwright install`.
+const CHROMIUM_PATH = process.env.PW_CHROMIUM_PATH;
+
+
 /**
  * Visual-regression + walkthrough Playwright config.
  * Baselines live in tests/visual/__screenshots__/ and are committed.
@@ -24,11 +29,18 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-chromium",
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } },
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 900 },
+        launchOptions: CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {},
+      },
     },
     {
       name: "mobile-chromium",
-      use: { ...devices["Pixel 7"] },
+      use: {
+        ...devices["Pixel 7"],
+        launchOptions: CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {},
+      },
     },
   ],
 });
