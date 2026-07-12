@@ -17,6 +17,7 @@ const FloatingAIChat = ({ currentPage, onOpen }: FloatingAIChatProps) => {
     <button
       onClick={onOpen}
       aria-label="Open AI support chat"
+      data-testid="floating-ai-chat"
       className="group fixed bottom-6 right-6 z-40 flex items-center gap-2"
     >
       {/* Pulsing halo */}
