@@ -289,11 +289,22 @@ const ConfessionsPage = ({
           </Card>
         )}
 
-        <div className="mb-8">
-          <CategoryFilter
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-          />
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <CategoryFilter
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+            />
+          </div>
+          {user && setShowPostCreator && (
+            <Button
+              onClick={() => setShowPostCreator(true)}
+              className="shrink-0 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-lg"
+            >
+              <PenSquare className="w-4 h-4 mr-2" />
+              Share Your Story
+            </Button>
+          )}
         </div>
 
         <Tabs
