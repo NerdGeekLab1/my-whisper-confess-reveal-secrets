@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, Clock, TrendingUp, Lock, Loader2, ArrowDown } from "lucide-react";
+import { Heart, Clock, TrendingUp, Lock, Loader2, ArrowDown, PenSquare } from "lucide-react";
 import CommunityStats from "@/components/CommunityStats";
 import CategoryFilter from "@/components/CategoryFilter";
 import ConfessionCard from "@/components/ConfessionCard";
