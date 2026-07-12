@@ -157,14 +157,6 @@ const Header = ({
               </Button>
             )}
 
-            {(currentPage === "confessions" && user) && (
-              <Button 
-                onClick={() => setShowPostCreator(true)}
-                className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
-              >
-                Share Your Story
-              </Button>
-            )}
           </div>
         </div>
       </div>

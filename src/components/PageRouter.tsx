@@ -81,6 +81,7 @@ const PageRouter = ({
           setSelectedCategory={setSelectedCategory}
           setShowAuthModal={setShowAuthModal}
           setCurrentPage={setCurrentPage}
+          setShowPostCreator={setShowPostCreator}
         />
       );
   }
