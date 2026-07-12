@@ -16,6 +16,7 @@ interface ConfessionsPageProps {
   setSelectedCategory: (category: string) => void;
   setShowAuthModal: (show: boolean) => void;
   setCurrentPage: (page: string) => void;
+  setShowPostCreator?: (show: boolean) => void;
 }
 
 type TabKey = "recent" | "trending" | "supported";
@@ -43,6 +44,7 @@ const ConfessionsPage = ({
   setSelectedCategory,
   setShowAuthModal,
   setCurrentPage,
+  setShowPostCreator,
 }: ConfessionsPageProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>("recent");
   const [feeds, setFeeds] = useState<Record<TabKey, FeedState>>({
