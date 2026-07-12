@@ -312,7 +312,7 @@ const ConfessionsPage = ({
           onValueChange={(v) => setActiveTab(v as TabKey)}
           className="mb-8"
         >
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800 border-slate-700">
+          <TabsList data-testid="sort-buttons" className="grid w-full grid-cols-3 bg-slate-800 border-slate-700">
             <TabsTrigger value="recent" className="text-slate-300 data-[state=active]:text-white">
               <Clock className="w-4 h-4 mr-2" />
               Recent

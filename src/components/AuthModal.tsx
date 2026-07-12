@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, Lock, User, Shield, UserCheck, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { signupSchema, loginSchema } from "@/lib/validation";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -22,17 +23,24 @@ const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin }: AuthModalProps) => 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  
+
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [signupForm, setSignupForm] = useState({ username: "", email: "", password: "", confirmPassword: "" });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const parsed = loginSchema.safeParse(loginForm);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      toast({ title: "Check your details", description: first.message, variant: "destructive" });
+      return;
+    }
+
     setIsLoading(true);
-    
     const { error } = await supabase.auth.signInWithPassword({
-      email: loginForm.email,
-      password: loginForm.password,
+      email: parsed.data.email,
+      password: parsed.data.password,
     });
 
     if (error) {
@@ -45,21 +53,48 @@ const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin }: AuthModalProps) => 
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (signupForm.password !== signupForm.confirmPassword) {
-      toast({ title: "Error", description: "Passwords don't match", variant: "destructive" });
+
+    const parsed = signupSchema.safeParse(signupForm);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      toast({ title: "Check your details", description: first.message, variant: "destructive" });
       return;
     }
-    
+    const { username, email, password } = parsed.data;
+
     setIsLoading(true);
-    
-    const { error } = await supabase.auth.signUp({
-      email: signupForm.email,
-      password: signupForm.password,
-      options: {
-        data: { username: signupForm.username },
-        emailRedirectTo: window.location.origin,
+
+    // Rate-limit pre-flight (fail-open on network errors).
+    try {
+      const { data: rl, error: rlErr } = await supabase.functions.invoke("signup-rate-limit", {
+        body: { email },
+      });
+      if (!rlErr && rl && rl.allowed === false) {
+        toast({
+          title: "Too many attempts",
+          description: rl.message ?? "Please wait a while before trying again.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
       }
+    } catch (_) {
+      // fail-open
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username },
+        emailRedirectTo: window.location.origin,
+      },
     });
+
+    // Record outcome so repeated failures still count against the limit.
+    supabase.functions
+      .invoke("signup-rate-limit", { body: { email, record: true, success: !error } })
+      .catch(() => {});
 
     if (error) {
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });
@@ -171,9 +206,10 @@ const AuthModal = ({ isOpen, onClose, onAuth, onDemoLogin }: AuthModalProps) => 
                 <Label htmlFor="signup-password" className="text-slate-300">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="Create a password (min 6 chars)"
+                  <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="Min 8 chars, letters + numbers"
                     value={signupForm.password} onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
-                    className="pl-10 pr-10 bg-slate-800 border-slate-600 text-white" required minLength={6} />
+                    className="pl-10 pr-10 bg-slate-800 border-slate-600 text-white" required minLength={8} maxLength={128}
+                    autoComplete="new-password" />
                   <Button type="button" variant="ghost" size="sm"
                     className="absolute right-2 top-2 text-slate-400 hover:text-white"
                     onClick={() => setShowPassword(!showPassword)}>

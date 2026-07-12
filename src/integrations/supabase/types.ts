@@ -268,6 +268,30 @@ export type Database = {
           },
         ]
       }
+      signup_attempts: {
+        Row: {
+          attempted_at: string
+          email_hash: string
+          id: string
+          ip_hash: string
+          success: boolean
+        }
+        Insert: {
+          attempted_at?: string
+          email_hash: string
+          id?: string
+          ip_hash: string
+          success?: boolean
+        }
+        Update: {
+          attempted_at?: string
+          email_hash?: string
+          id?: string
+          ip_hash?: string
+          success?: boolean
+        }
+        Relationships: []
+      }
       soul_posts: {
         Row: {
           ai_soul_score: number | null
@@ -422,6 +446,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_signup_attempts: { Args: never; Returns: undefined }
       ensure_current_user_setup: {
         Args: { _email: string; _user_id: string; _username?: string }
         Returns: Json

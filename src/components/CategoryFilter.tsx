@@ -21,7 +21,7 @@ const CategoryFilter = ({ selectedCategory, onCategoryChange }: CategoryFilterPr
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="category-filter">
       <h2 className="text-xl font-semibold text-white">Categories</h2>
       <div className="flex flex-wrap gap-2">
         {categories.map((category) => (
