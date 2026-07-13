@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction } from "@/lib/adminAudit";
 import HeadScriptsEditor from "./HeadScriptsEditor";
+import EmailTemplatesEditor from "./EmailTemplatesEditor";
 
 interface AppSetting {
   id: string;
@@ -234,6 +235,7 @@ const AdminConfiguration = () => {
   return (
     <div className="space-y-6">
       <HeadScriptsEditor />
+      <EmailTemplatesEditor />
       <Card className="bg-slate-900 border-slate-700">
       <CardHeader>
         <CardTitle className="text-white flex items-center">

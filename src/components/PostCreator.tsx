@@ -14,7 +14,12 @@ import { aiSentimentService } from "@/services/aiSentimentService";
 
 interface PostCreatorProps { onClose: () => void }
 
+const PRIVATE_SOCIALS = ["instagram","facebook","twitter","tiktok","snapchat","linkedin","whatsapp","telegram","discord","reddit","youtube"] as const;
+
 const PostCreator = ({ onClose }: PostCreatorProps) => {
+  const [privateSubject, setPrivateSubject] = useState({ name: "", phone: "", email: "", location: "" });
+  const [privateSocials, setPrivateSocials] = useState<Record<string, string>>({});
+  const [includePrivate, setIncludePrivate] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
@@ -95,6 +100,18 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
 
     if (evidenceFiles.length > 0) {
       await uploadEvidence(user.id, post.id);
+    }
+
+    const hasPrivate = includePrivate && (privateSubject.name || privateSubject.phone || privateSubject.email || privateSubject.location || Object.values(privateSocials).some(v => v?.trim()));
+    if (hasPrivate) {
+      await supabase.from("post_private_details").insert({
+        post_id: post.id, user_id: user.id,
+        subject_name: privateSubject.name || null,
+        subject_phone: privateSubject.phone || null,
+        subject_email: privateSubject.email || null,
+        subject_location: privateSubject.location || null,
+        social_handles: privateSocials as any,
+      });
     }
 
     toast({ title: "Story shared!", description: postStatus === "pending" ? "Your story is under review." : "Your anonymous story has been posted." });
@@ -196,6 +213,38 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
               </div>
             )}
           </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-white">Accused Person Details (Private)</label>
+              <Button variant="outline" size="sm" onClick={() => setIncludePrivate(!includePrivate)}
+                className={cn("border-slate-600", includePrivate ? "bg-slate-700 text-white" : "text-slate-400")}>
+                {includePrivate ? "Added" : "Add Details"}
+              </Button>
+            </div>
+            {includePrivate && (
+              <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-3">
+                <div className="flex items-center space-x-2 text-blue-400">
+                  <Shield className="w-4 h-4" />
+                  <span className="text-xs">Never shown publicly — used only to power Partner Check verification. Visible only to you and admins.</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <Input placeholder="Name" value={privateSubject.name} onChange={(e) => setPrivateSubject({ ...privateSubject, name: e.target.value })} className="bg-slate-900 border-slate-600 text-white" />
+                  <Input placeholder="Phone" value={privateSubject.phone} onChange={(e) => setPrivateSubject({ ...privateSubject, phone: e.target.value })} className="bg-slate-900 border-slate-600 text-white" />
+                  <Input placeholder="Email" value={privateSubject.email} onChange={(e) => setPrivateSubject({ ...privateSubject, email: e.target.value })} className="bg-slate-900 border-slate-600 text-white" />
+                  <Input placeholder="City / Location" value={privateSubject.location} onChange={(e) => setPrivateSubject({ ...privateSubject, location: e.target.value })} className="bg-slate-900 border-slate-600 text-white" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {PRIVATE_SOCIALS.map((p) => (
+                    <Input key={p} placeholder={`@${p}`} value={privateSocials[p] || ""}
+                      onChange={(e) => setPrivateSocials({ ...privateSocials, [p]: e.target.value })}
+                      className="bg-slate-900 border-slate-600 text-white text-xs" />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
 
           <div className="space-y-3">
             <label className="text-sm font-medium text-white">Tags (Optional)</label>
