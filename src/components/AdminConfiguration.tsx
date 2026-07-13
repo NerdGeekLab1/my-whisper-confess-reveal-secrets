@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction } from "@/lib/adminAudit";
 import HeadScriptsEditor from "./HeadScriptsEditor";
+import EmailTemplatesEditor from "./EmailTemplatesEditor";
 
 interface AppSetting {
   id: string;
