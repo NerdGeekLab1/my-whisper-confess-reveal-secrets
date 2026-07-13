@@ -126,6 +126,7 @@ export type Database = {
           id: string
           overall_score: number
           partner_name: string
+          partner_social_handles: Json
           recommendations: string[]
           strengths: string[]
           user_id: string
@@ -139,6 +140,7 @@ export type Database = {
           id?: string
           overall_score: number
           partner_name: string
+          partner_social_handles?: Json
           recommendations?: string[]
           strengths?: string[]
           user_id: string
@@ -152,11 +154,82 @@ export type Database = {
           id?: string
           overall_score?: number
           partner_name?: string
+          partner_social_handles?: Json
           recommendations?: string[]
           strengths?: string[]
           user_id?: string
         }
         Relationships: []
+      }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       posts: {
         Row: {
@@ -206,6 +279,7 @@ export type Database = {
           is_verified: boolean | null
           joined_date: string | null
           last_active: string | null
+          notification_prefs: Json
           updated_at: string | null
           username: string | null
         }
@@ -217,6 +291,7 @@ export type Database = {
           is_verified?: boolean | null
           joined_date?: string | null
           last_active?: string | null
+          notification_prefs?: Json
           updated_at?: string | null
           username?: string | null
         }
@@ -228,6 +303,7 @@ export type Database = {
           is_verified?: boolean | null
           joined_date?: string | null
           last_active?: string | null
+          notification_prefs?: Json
           updated_at?: string | null
           username?: string | null
         }
