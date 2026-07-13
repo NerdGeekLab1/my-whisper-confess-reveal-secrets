@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Lock, Globe, Plus, Heart, Star, Calendar, Loader2 } from "lucide-react";
+import { BookOpen, Lock, Plus, Star, Calendar, Loader2, Trash2, Pencil, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,6 +23,8 @@ const AnonymousDiary = () => {
   const [loading, setLoading] = useState(true);
   const [showNewEntry, setShowNewEntry] = useState(false);
   const [newEntry, setNewEntry] = useState({ title: "", content: "", mood: "", isPublic: false });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState({ title: "", content: "", mood: "" });
   const { toast } = useToast();
 
   const fetchEntries = async () => {
@@ -39,7 +41,6 @@ const AnonymousDiary = () => {
   const handleSaveEntry = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
     const { error } = await supabase.from("diary_entries").insert({
       user_id: user.id,
       title: newEntry.title || null,
@@ -47,15 +48,38 @@ const AnonymousDiary = () => {
       mood: newEntry.mood || null,
       is_private: !newEntry.isPublic,
     });
-
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Entry saved!", description: "Your diary entry has been saved." });
+      toast({ title: "Entry saved!" });
       setNewEntry({ title: "", content: "", mood: "", isPublic: false });
       setShowNewEntry(false);
       fetchEntries();
     }
+  };
+
+  const startEdit = (e: DiaryEntry) => {
+    setEditingId(e.id);
+    setEditDraft({ title: e.title || "", content: e.content, mood: e.mood || "" });
+  };
+
+  const saveEdit = async (id: string) => {
+    const { error } = await supabase
+      .from("diary_entries")
+      .update({ title: editDraft.title || null, content: editDraft.content, mood: editDraft.mood || null })
+      .eq("id", id);
+    if (error) return toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    toast({ title: "Entry updated" });
+    setEditingId(null);
+    fetchEntries();
+  };
+
+  const deleteEntry = async (id: string) => {
+    if (!confirm("Delete this diary entry? This cannot be undone.")) return;
+    const { error } = await supabase.from("diary_entries").delete().eq("id", id);
+    if (error) return toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    toast({ title: "Entry deleted" });
+    setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
   const getMoodColor = (mood: string | null) => {
@@ -98,26 +122,18 @@ const AnonymousDiary = () => {
           <Card className="bg-slate-900 border-slate-700 mb-6">
             <CardHeader><CardTitle className="text-white">Write New Entry</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm text-slate-400 mb-2 block">Title</label>
-                <Input placeholder="Entry title" value={newEntry.title}
-                  onChange={(e) => setNewEntry({...newEntry, title: e.target.value})}
-                  className="bg-slate-800 border-slate-600 text-white" />
-              </div>
-              <div>
-                <label className="text-sm text-slate-400 mb-2 block">Current Mood</label>
-                <Input placeholder="How are you feeling?" value={newEntry.mood}
-                  onChange={(e) => setNewEntry({...newEntry, mood: e.target.value})}
-                  className="bg-slate-800 border-slate-600 text-white" />
-              </div>
-              <div>
-                <label className="text-sm text-slate-400 mb-2 block">Content</label>
-                <Textarea placeholder="Write your thoughts..." value={newEntry.content}
-                  onChange={(e) => setNewEntry({...newEntry, content: e.target.value})}
-                  className="bg-slate-800 border-slate-600 text-white min-h-32" />
-              </div>
+              <Input placeholder="Entry title" value={newEntry.title}
+                onChange={(e) => setNewEntry({ ...newEntry, title: e.target.value })}
+                className="bg-slate-800 border-slate-600 text-white" />
+              <Input placeholder="Current mood (e.g. hopeful)" value={newEntry.mood}
+                onChange={(e) => setNewEntry({ ...newEntry, mood: e.target.value })}
+                className="bg-slate-800 border-slate-600 text-white" />
+              <Textarea placeholder="Write your thoughts..." value={newEntry.content}
+                onChange={(e) => setNewEntry({ ...newEntry, content: e.target.value })}
+                className="bg-slate-800 border-slate-600 text-white min-h-32" />
               <div className="flex space-x-3">
-                <Button onClick={handleSaveEntry} className="bg-purple-600 hover:bg-purple-700">Save Entry</Button>
+                <Button onClick={handleSaveEntry} disabled={!newEntry.content.trim()}
+                  className="bg-purple-600 hover:bg-purple-700">Save Entry</Button>
                 <Button variant="outline" onClick={() => setShowNewEntry(false)}
                   className="border-slate-600 text-slate-300 hover:bg-slate-800">Cancel</Button>
               </div>
@@ -137,28 +153,69 @@ const AnonymousDiary = () => {
           {entries.map((entry) => (
             <Card key={entry.id} className="bg-slate-900 border-slate-700">
               <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="text-lg font-semibold text-white">{entry.title || "Untitled"}</h3>
-                      <Badge className="bg-slate-500/20 text-slate-400">
-                        <Lock className="w-3 h-3 mr-1" />Private
-                      </Badge>
-                    </div>
+                <div className="flex items-start justify-between mb-4 gap-3">
+                  <div className="flex-1 min-w-0">
+                    {editingId === entry.id ? (
+                      <Input value={editDraft.title}
+                        onChange={(e) => setEditDraft({ ...editDraft, title: e.target.value })}
+                        placeholder="Title"
+                        className="bg-slate-800 border-slate-600 text-white mb-2" />
+                    ) : (
+                      <div className="flex items-center space-x-2 mb-2">
+                        <h3 className="text-lg font-semibold text-white">{entry.title || "Untitled"}</h3>
+                        <Badge className="bg-slate-500/20 text-slate-400">
+                          <Lock className="w-3 h-3 mr-1" />Private
+                        </Badge>
+                      </div>
+                    )}
                     <div className="flex items-center space-x-4 text-sm text-slate-400 mb-3">
                       <span className="flex items-center">
                         <Calendar className="w-3 h-3 mr-1" />
                         {entry.created_at ? new Date(entry.created_at).toLocaleDateString() : "Unknown"}
                       </span>
-                      {entry.mood && (
-                        <span className={`flex items-center ${getMoodColor(entry.mood)}`}>
-                          <Star className="w-3 h-3 mr-1" />{entry.mood}
-                        </span>
+                      {editingId === entry.id ? (
+                        <Input value={editDraft.mood}
+                          onChange={(e) => setEditDraft({ ...editDraft, mood: e.target.value })}
+                          placeholder="mood"
+                          className="bg-slate-800 border-slate-600 text-white h-8 max-w-[160px]" />
+                      ) : (
+                        entry.mood && (
+                          <span className={`flex items-center ${getMoodColor(entry.mood)}`}>
+                            <Star className="w-3 h-3 mr-1" />{entry.mood}
+                          </span>
+                        )
                       )}
                     </div>
                   </div>
+                  <div className="flex items-center gap-1">
+                    {editingId === entry.id ? (
+                      <>
+                        <Button size="sm" variant="ghost" className="text-green-400" onClick={() => saveEdit(entry.id)}>
+                          <Save className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-slate-400" onClick={() => setEditingId(null)}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button size="sm" variant="ghost" className="text-blue-400" onClick={() => startEdit(entry)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-red-400" onClick={() => deleteEntry(entry.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <p className="text-slate-300 leading-relaxed">{entry.content}</p>
+                {editingId === entry.id ? (
+                  <Textarea value={editDraft.content}
+                    onChange={(e) => setEditDraft({ ...editDraft, content: e.target.value })}
+                    className="bg-slate-800 border-slate-600 text-white min-h-24" />
+                ) : (
+                  <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{entry.content}</p>
+                )}
               </CardContent>
             </Card>
           ))}

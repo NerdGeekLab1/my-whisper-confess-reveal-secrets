@@ -198,17 +198,26 @@ const ConfessionsPage = ({
   }, [selectedCategory, user]);
 
   const mapPost = (p: any) => ({
-    id: p.id,
+    id: p.id as string,
     title: p.title,
     content: p.content,
     category: p.category || "other",
     timeAgo: p.created_at ? new Date(p.created_at).toLocaleDateString() : "recently",
-    reactions: { support: 0, shocked: 0, similar: 0 },
-    comments: 0,
     isVerified: false,
     tags: [],
+    user_id: p.user_id,
     status: p.status,
   });
+
+  const removePost = (id: string) => {
+    setFeeds((f) => {
+      const next: any = { ...f };
+      (Object.keys(f) as TabKey[]).forEach((k) => {
+        next[k] = { ...f[k], posts: f[k].posts.filter((p: any) => p.id !== id) };
+      });
+      return next;
+    });
+  };
 
   const renderFeed = (tab: TabKey) => {
     const state = feeds[tab];
@@ -233,7 +242,7 @@ const ConfessionsPage = ({
     return (
       <>
         {state.posts.map((p) => (
-          <ConfessionCard key={p.id} confession={mapPost(p)} />
+          <ConfessionCard key={p.id} confession={mapPost(p)} onDeleted={removePost} />
         ))}
         <div ref={sentinelRef} className="h-1" />
         {state.loadingMore && (
