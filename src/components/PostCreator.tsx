@@ -14,7 +14,12 @@ import { aiSentimentService } from "@/services/aiSentimentService";
 
 interface PostCreatorProps { onClose: () => void }
 
+const PRIVATE_SOCIALS = ["instagram","facebook","twitter","tiktok","snapchat","linkedin","whatsapp","telegram","discord","reddit","youtube"] as const;
+
 const PostCreator = ({ onClose }: PostCreatorProps) => {
+  const [privateSubject, setPrivateSubject] = useState({ name: "", phone: "", email: "", location: "" });
+  const [privateSocials, setPrivateSocials] = useState<Record<string, string>>({});
+  const [includePrivate, setIncludePrivate] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
