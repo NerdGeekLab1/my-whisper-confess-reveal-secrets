@@ -43,13 +43,10 @@ const ReportModal = ({ open, onClose, postId, userId }: Props) => {
       reason: full,
       status: "pending",
     });
-    // bump post reports_count so admin can see flagged content
     if (!error) {
-      await (supabase.rpc as any)("noop"); // ignore
-      await supabase
-        .from("posts")
-        .update({ reports_count: (await supabase.from("posts").select("reports_count").eq("id", postId).single()).data?.reports_count + 1 || 1 })
-        .eq("id", postId);
+      const { data: p } = await supabase.from("posts").select("reports_count").eq("id", postId).maybeSingle();
+      const next = ((p?.reports_count as number) ?? 0) + 1;
+      await supabase.from("posts").update({ reports_count: next }).eq("id", postId);
     }
     setSubmitting(false);
     if (error) {
