@@ -26,6 +26,17 @@ interface LoyaltyFormData {
   familyIntegration: string;
 }
 
+const SOCIAL_PLATFORMS = [
+  { key: "instagram", label: "Instagram" },
+  { key: "facebook", label: "Facebook" },
+  { key: "twitter", label: "Twitter / X" },
+  { key: "tiktok", label: "TikTok" },
+  { key: "snapchat", label: "Snapchat" },
+  { key: "linkedin", label: "LinkedIn" },
+  { key: "phone", label: "Phone number" },
+] as const;
+type SocialKey = typeof SOCIAL_PLATFORMS[number]["key"];
+
 interface LoyaltyResult {
   overallScore: number;
   category: string;
@@ -67,6 +78,10 @@ const PartnerLoyaltyScore = () => {
   useEffect(() => {
     fetchSavedScores();
   }, []);
+
+  const [socialHandles, setSocialHandles] = useState<Record<string, string>>({});
+
+  const setHandle = (k: SocialKey, v: string) => setSocialHandles((prev) => ({ ...prev, [k]: v }));
 
   const fetchSavedScores = async () => {
     const { data } = await supabase
@@ -130,6 +145,7 @@ const PartnerLoyaltyScore = () => {
           concerns: loyaltyResult.concerns,
           recommendations: loyaltyResult.recommendations,
           form_data: formData as any,
+          partner_social_handles: socialHandles as any,
         });
         fetchSavedScores();
       }
