@@ -274,6 +274,25 @@ const PartnerLoyaltyScore = () => {
                 />
               </div>
 
+              <div className="space-y-3 border border-slate-700 rounded-lg p-4 bg-slate-800/40">
+                <Label className="text-slate-200 font-semibold">Partner's Social Media Handles</Label>
+                <p className="text-xs text-slate-400">Used for cross-checking against Culprit Search. Kept private to you.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {SOCIAL_PLATFORMS.map((p) => (
+                    <div key={p.key}>
+                      <Label className="text-slate-400 text-xs">{p.label}</Label>
+                      <Input
+                        value={socialHandles[p.key] || ""}
+                        onChange={(e) => setHandle(p.key, e.target.value)}
+                        placeholder={p.key === "phone" ? "+1..." : `@${p.key}_handle`}
+                        className="bg-slate-900 border-slate-600 text-white"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label className="text-slate-300">Relationship Duration</Label>
