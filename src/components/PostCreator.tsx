@@ -102,6 +102,18 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
       await uploadEvidence(user.id, post.id);
     }
 
+    const hasPrivate = includePrivate && (privateSubject.name || privateSubject.phone || privateSubject.email || privateSubject.location || Object.values(privateSocials).some(v => v?.trim()));
+    if (hasPrivate) {
+      await supabase.from("post_private_details").insert({
+        post_id: post.id, user_id: user.id,
+        subject_name: privateSubject.name || null,
+        subject_phone: privateSubject.phone || null,
+        subject_email: privateSubject.email || null,
+        subject_location: privateSubject.location || null,
+        social_handles: privateSocials as any,
+      });
+    }
+
     toast({ title: "Story shared!", description: postStatus === "pending" ? "Your story is under review." : "Your anonymous story has been posted." });
     onClose();
     setIsSubmitting(false);
