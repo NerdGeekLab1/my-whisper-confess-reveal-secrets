@@ -235,6 +235,7 @@ const AdminConfiguration = () => {
   return (
     <div className="space-y-6">
       <HeadScriptsEditor />
+      <EmailTemplatesEditor />
       <Card className="bg-slate-900 border-slate-700">
       <CardHeader>
         <CardTitle className="text-white flex items-center">
