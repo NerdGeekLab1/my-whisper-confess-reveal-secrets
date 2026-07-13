@@ -33,6 +33,12 @@ const SOCIAL_PLATFORMS = [
   { key: "tiktok", label: "TikTok" },
   { key: "snapchat", label: "Snapchat" },
   { key: "linkedin", label: "LinkedIn" },
+  { key: "whatsapp", label: "WhatsApp" },
+  { key: "telegram", label: "Telegram" },
+  { key: "discord", label: "Discord" },
+  { key: "reddit", label: "Reddit" },
+  { key: "youtube", label: "YouTube" },
+  { key: "email", label: "Email" },
   { key: "phone", label: "Phone number" },
 ] as const;
 type SocialKey = typeof SOCIAL_PLATFORMS[number]["key"];
