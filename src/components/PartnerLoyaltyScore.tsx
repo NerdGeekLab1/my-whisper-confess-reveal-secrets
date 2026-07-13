@@ -26,6 +26,17 @@ interface LoyaltyFormData {
   familyIntegration: string;
 }
 
+const SOCIAL_PLATFORMS = [
+  { key: "instagram", label: "Instagram" },
+  { key: "facebook", label: "Facebook" },
+  { key: "twitter", label: "Twitter / X" },
+  { key: "tiktok", label: "TikTok" },
+  { key: "snapchat", label: "Snapchat" },
+  { key: "linkedin", label: "LinkedIn" },
+  { key: "phone", label: "Phone number" },
+] as const;
+type SocialKey = typeof SOCIAL_PLATFORMS[number]["key"];
+
 interface LoyaltyResult {
   overallScore: number;
   category: string;
@@ -67,6 +78,10 @@ const PartnerLoyaltyScore = () => {
   useEffect(() => {
     fetchSavedScores();
   }, []);
+
+  const [socialHandles, setSocialHandles] = useState<Record<string, string>>({});
+
+  const setHandle = (k: SocialKey, v: string) => setSocialHandles((prev) => ({ ...prev, [k]: v }));
 
   const fetchSavedScores = async () => {
     const { data } = await supabase
@@ -130,6 +145,7 @@ const PartnerLoyaltyScore = () => {
           concerns: loyaltyResult.concerns,
           recommendations: loyaltyResult.recommendations,
           form_data: formData as any,
+          partner_social_handles: socialHandles as any,
         });
         fetchSavedScores();
       }
@@ -257,6 +273,25 @@ const PartnerLoyaltyScore = () => {
                   className="bg-slate-800 border-slate-600 text-white"
                 />
               </div>
+
+              <div className="space-y-3 border border-slate-700 rounded-lg p-4 bg-slate-800/40">
+                <Label className="text-slate-200 font-semibold">Partner's Social Media Handles</Label>
+                <p className="text-xs text-slate-400">Used for cross-checking against Culprit Search. Kept private to you.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {SOCIAL_PLATFORMS.map((p) => (
+                    <div key={p.key}>
+                      <Label className="text-slate-400 text-xs">{p.label}</Label>
+                      <Input
+                        value={socialHandles[p.key] || ""}
+                        onChange={(e) => setHandle(p.key, e.target.value)}
+                        placeholder={p.key === "phone" ? "+1..." : `@${p.key}_handle`}
+                        className="bg-slate-900 border-slate-600 text-white"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>

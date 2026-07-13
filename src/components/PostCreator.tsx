@@ -1,20 +1,18 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Shield, AlertTriangle, Camera, FileText } from "lucide-react";
+import { X, Shield, AlertTriangle, Camera, FileText, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { aiSentimentService } from "@/services/aiSentimentService";
 
-interface PostCreatorProps {
-  onClose: () => void;
-}
+interface PostCreatorProps { onClose: () => void }
 
 const PostCreator = ({ onClose }: PostCreatorProps) => {
   const [title, setTitle] = useState("");
@@ -23,7 +21,10 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [includeEvidence, setIncludeEvidence] = useState(false);
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const docInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
 
   const categories = [
@@ -38,14 +39,28 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
   ];
 
   const addTag = () => {
-    if (newTag && !tags.includes(newTag)) {
-      setTags([...tags, newTag]);
-      setNewTag("");
+    if (newTag && !tags.includes(newTag)) { setTags([...tags, newTag]); setNewTag(""); }
+  };
+  const removeTag = (t: string) => setTags(tags.filter(x => x !== t));
+
+  const onFilesPicked = (list: FileList | null) => {
+    if (!list) return;
+    const picked = Array.from(list).filter((f) => f.size <= 10 * 1024 * 1024);
+    if (picked.length !== list.length) {
+      toast({ title: "Some files skipped", description: "Files must be under 10MB each.", variant: "destructive" });
     }
+    setEvidenceFiles((prev) => [...prev, ...picked].slice(0, 5));
   };
 
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+  const removeFile = (idx: number) => setEvidenceFiles((prev) => prev.filter((_, i) => i !== idx));
+
+  const uploadEvidence = async (userId: string, postId: string) => {
+    for (const file of evidenceFiles) {
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${userId}/${postId}/${Date.now()}-${safe}`;
+      const { error } = await supabase.storage.from("post-evidence").upload(path, file, { upsert: false });
+      if (error) console.warn("evidence upload failed", error);
+    }
   };
 
   const handleSubmit = async () => {
@@ -53,42 +68,37 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast({ title: "Error", description: "You must be logged in to post.", variant: "destructive" });
-      setIsSubmitting(false);
-      return;
+      setIsSubmitting(false); return;
     }
 
-    // Run AI content moderation
     let postStatus = "approved";
     try {
       const moderation = await aiSentimentService.moderateContent(content);
       if (moderation.suggestedAction === "reject") {
-        toast({ title: "Content Flagged", description: "Your post contains content that violates community guidelines.", variant: "destructive" });
-        setIsSubmitting(false);
-        return;
+        toast({ title: "Content Flagged", description: "Your post violates community guidelines.", variant: "destructive" });
+        setIsSubmitting(false); return;
       }
       if (moderation.suggestedAction === "review") {
         postStatus = "pending";
-        toast({ title: "Under Review", description: "Your post will be visible after moderation review." });
+        toast({ title: "Under Review", description: "Your post will be visible after moderation." });
       }
-    } catch (e) {
-      console.warn("Moderation check failed, defaulting to approved:", e);
+    } catch (e) { console.warn("Moderation failed:", e); }
+
+    const { data: post, error } = await supabase.from("posts").insert({
+      user_id: user.id, title, content, category, is_anonymous: true, status: postStatus,
+    }).select("id").single();
+
+    if (error || !post) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
+      setIsSubmitting(false); return;
     }
 
-    const { error } = await supabase.from("posts").insert({
-      user_id: user.id,
-      title,
-      content,
-      category,
-      is_anonymous: true,
-      status: postStatus,
-    });
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Story shared!", description: postStatus === "pending" ? "Your story is under review." : "Your anonymous story has been posted." });
-      onClose();
+    if (evidenceFiles.length > 0) {
+      await uploadEvidence(user.id, post.id);
     }
+
+    toast({ title: "Story shared!", description: postStatus === "pending" ? "Your story is under review." : "Your anonymous story has been posted." });
+    onClose();
     setIsSubmitting(false);
   };
 
@@ -97,12 +107,9 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
       <Card className="w-full max-w-2xl bg-slate-900 border-slate-700 max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-white flex items-center">
-            <Shield className="w-5 h-5 mr-2 text-green-400" />
-            Share Your Story Anonymously
+            <Shield className="w-5 h-5 mr-2 text-green-400" />Share Your Story Anonymously
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose} className="text-slate-400">
-            <X className="w-4 h-4" />
-          </Button>
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-slate-400"><X className="w-4 h-4" /></Button>
         </CardHeader>
 
         <CardContent className="space-y-6">
@@ -111,7 +118,7 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
               <Shield className="w-5 h-5 text-green-400 mt-0.5" />
               <div className="text-sm text-slate-300">
                 <p className="font-medium text-white mb-1">Complete Privacy Guaranteed</p>
-                <p>Your identity is never stored or tracked. All posts are completely anonymous.</p>
+                <p>Your identity is never public. Never include social media handles or personal identifiers in your story.</p>
               </div>
             </div>
           </div>
@@ -138,8 +145,12 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-white">Your Story</label>
-            <Textarea placeholder="Share your experience..." value={content} onChange={(e) => setContent(e.target.value)}
+            <Textarea placeholder="Share your experience... (do NOT include social media handles)"
+              value={content} onChange={(e) => setContent(e.target.value)}
               className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-400 min-h-[150px] resize-none" />
+            <p className="text-xs text-slate-500">
+              Social handles belong in the Partner Loyalty Score / Culprit Search tools — not in public confessions.
+            </p>
           </div>
 
           <div className="space-y-3">
@@ -154,17 +165,34 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-3">
                 <div className="flex items-center space-x-2 text-orange-400">
                   <AlertTriangle className="w-4 h-4" />
-                  <span className="text-sm font-medium">Evidence Upload</span>
+                  <span className="text-sm font-medium">Evidence Upload (up to 5 files, 10MB each — private to admins)</span>
                 </div>
-                <p className="text-xs text-slate-400">Only upload evidence you own. All identifying information will be automatically blurred.</p>
+                <input ref={imageInputRef} type="file" accept="image/*" multiple hidden
+                  onChange={(e) => { onFilesPicked(e.target.files); e.target.value = ""; }} />
+                <input ref={docInputRef} type="file" accept=".pdf,.txt,.doc,.docx,image/*" multiple hidden
+                  onChange={(e) => { onFilesPicked(e.target.files); e.target.value = ""; }} />
                 <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                  <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => imageInputRef.current?.click()}>
                     <Camera className="w-4 h-4 mr-2" />Screenshots
                   </Button>
-                  <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
-                    <FileText className="w-4 h-4 mr-2" />Messages
+                  <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => docInputRef.current?.click()}>
+                    <FileText className="w-4 h-4 mr-2" />Messages / Docs
                   </Button>
                 </div>
+                {evidenceFiles.length > 0 && (
+                  <div className="space-y-2">
+                    {evidenceFiles.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between bg-slate-900/60 rounded px-3 py-2">
+                        <span className="text-xs text-slate-300 truncate">{f.name} · {(f.size / 1024).toFixed(0)}KB</span>
+                        <Button size="sm" variant="ghost" className="text-red-400 h-6 px-2" onClick={() => removeFile(i)}>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -193,7 +221,7 @@ const PostCreator = ({ onClose }: PostCreatorProps) => {
             <Button onClick={onClose} variant="outline" className="flex-1 border-slate-600">Cancel</Button>
             <Button onClick={handleSubmit} disabled={!title || !content || !category || isSubmitting}
               className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600">
-              {isSubmitting ? "Posting..." : "Post Anonymously"}
+              {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Posting...</> : "Post Anonymously"}
             </Button>
           </div>
         </CardContent>

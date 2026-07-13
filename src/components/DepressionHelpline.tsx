@@ -126,13 +126,11 @@ const DepressionHelpline = () => {
                   <h3 className="text-lg font-semibold text-white">Need Immediate Help?</h3>
                   <p className="text-red-200">If you're having thoughts of suicide or self-harm, please reach out now:</p>
                   <div className="flex space-x-4 mt-2">
-                    <Button className="bg-red-600 hover:bg-red-700">
-                      <Phone className="w-4 h-4 mr-2" />
-                      Call 988
+                    <Button asChild className="bg-red-600 hover:bg-red-700">
+                      <a href="tel:988"><Phone className="w-4 h-4 mr-2" />Call 988</a>
                     </Button>
-                    <Button variant="outline" className="border-red-500 text-red-200 hover:bg-red-900">
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Crisis Chat
+                    <Button asChild variant="outline" className="border-red-500 text-red-200 hover:bg-red-900">
+                      <a href="sms:741741&body=HOME"><MessageCircle className="w-4 h-4 mr-2" />Crisis Chat</a>
                     </Button>
                   </div>
                 </div>
@@ -222,26 +220,34 @@ const DepressionHelpline = () => {
                 </div>
 
                 <div className="pt-4 border-t border-slate-800">
-                  <Button 
-                    className={resource.type === "crisis" 
-                      ? "bg-red-600 hover:bg-red-700 w-full" 
-                      : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 w-full"
-                    }
-                  >
-                    {resource.contact.startsWith("1-") || resource.contact === "988" ? (
-                      <>
-                        <Phone className="w-4 h-4 mr-2" />
-                        Call {resource.contact}
-                      </>
-                    ) : resource.contact === "Start Chat" ? (
-                      <>
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        {resource.contact}
-                      </>
+                  {(() => {
+                    const isPhone = /^\d|\+|-/.test(resource.contact) || resource.contact === "988";
+                    const digits = resource.contact.replace(/[^\d+]/g, "");
+                    const href = isPhone
+                      ? `tel:${digits}`
+                      : resource.type === "chat"
+                      ? "sms:741741&body=HOME"
+                      : resource.type === "therapy"
+                      ? "mailto:support@shadow-stories.lovable.app?subject=Therapy%20request"
+                      : "#";
+                    const label = isPhone ? (
+                      <><Phone className="w-4 h-4 mr-2" />Call {resource.contact}</>
+                    ) : resource.type === "chat" ? (
+                      <><MessageCircle className="w-4 h-4 mr-2" />{resource.contact}</>
                     ) : (
                       resource.contact
-                    )}
-                  </Button>
+                    );
+                    return (
+                      <Button asChild
+                        className={resource.type === "crisis"
+                          ? "bg-red-600 hover:bg-red-700 w-full"
+                          : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 w-full"}>
+                        <a href={href} target={isPhone || href.startsWith("mailto") || href.startsWith("sms") ? "_self" : "_blank"} rel="noopener">
+                          {label}
+                        </a>
+                      </Button>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>

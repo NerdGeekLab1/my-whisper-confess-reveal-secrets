@@ -1,115 +1,100 @@
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Heart, Eye, MessageCircle, HandHeart, Lightbulb } from "lucide-react";
+import { Heart, Eye, HandHeart, Lightbulb, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-interface Reaction {
-  type: 'support' | 'relate' | 'encourage' | 'insightful' | 'healing';
-  count: number;
-  icon: React.ComponentType<any>;
-  label: string;
-  color: string;
-}
+type ReactionType = "support" | "relate" | "encourage" | "insightful" | "healing";
 
-interface PostReactionsProps {
+const REACTIONS: { type: ReactionType; icon: any; label: string; color: string }[] = [
+  { type: "support", icon: Heart, label: "Support", color: "text-pink-400" },
+  { type: "relate", icon: Eye, label: "I Relate", color: "text-blue-400" },
+  { type: "encourage", icon: HandHeart, label: "Encourage", color: "text-green-400" },
+  { type: "insightful", icon: Lightbulb, label: "Insightful", color: "text-yellow-400" },
+  { type: "healing", icon: MessageCircle, label: "Healing", color: "text-purple-400" },
+];
+
+interface Props {
   postId: string;
-  initialReactions?: { [key: string]: number };
-  onReactionChange?: (postId: string, reactions: { [key: string]: number }) => void;
+  userId?: string | null;
+  onRequireAuth?: () => void;
 }
 
-const PostReactions = ({ postId, initialReactions = {}, onReactionChange }: PostReactionsProps) => {
-  const [userReactions, setUserReactions] = useState<Set<string>>(new Set());
-  const [reactions, setReactions] = useState<{ [key: string]: number }>({
-    support: 0,
-    relate: 0,
-    encourage: 0,
-    insightful: 0,
-    healing: 0,
-    ...initialReactions
-  });
+const PostReactions = ({ postId, userId, onRequireAuth }: Props) => {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [mine, setMine] = useState<ReactionType | null>(null);
+  const [busy, setBusy] = useState(false);
+  const { toast } = useToast();
 
-  const reactionTypes: Reaction[] = [
-    {
-      type: 'support',
-      count: reactions.support,
-      icon: Heart,
-      label: 'Support',
-      color: 'text-pink-400 hover:text-pink-300'
-    },
-    {
-      type: 'relate',
-      count: reactions.relate,
-      icon: Eye,
-      label: 'I Relate',
-      color: 'text-blue-400 hover:text-blue-300'
-    },
-    {
-      type: 'encourage',
-      count: reactions.encourage,
-      icon: HandHeart,
-      label: 'Encourage',
-      color: 'text-green-400 hover:text-green-300'
-    },
-    {
-      type: 'insightful',
-      count: reactions.insightful,
-      icon: Lightbulb,
-      label: 'Insightful',
-      color: 'text-yellow-400 hover:text-yellow-300'
-    },
-    {
-      type: 'healing',
-      count: reactions.healing,
-      icon: MessageCircle,
-      label: 'Healing',
-      color: 'text-purple-400 hover:text-purple-300'
+  const load = async () => {
+    const { data } = await supabase
+      .from("post_reactions")
+      .select("reaction_type,user_id")
+      .eq("post_id", postId);
+    const c: Record<string, number> = {};
+    let m: ReactionType | null = null;
+    (data ?? []).forEach((r: any) => {
+      c[r.reaction_type] = (c[r.reaction_type] ?? 0) + 1;
+      if (userId && r.user_id === userId) m = r.reaction_type;
+    });
+    setCounts(c);
+    setMine(m);
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId, userId]);
+
+  const handleClick = async (type: ReactionType) => {
+    if (!userId) {
+      onRequireAuth?.();
+      return;
     }
-  ];
-
-  const handleReaction = (reactionType: string) => {
-    const newUserReactions = new Set(userReactions);
-    const newReactions = { ...reactions };
-
-    if (userReactions.has(reactionType)) {
-      // Remove reaction
-      newUserReactions.delete(reactionType);
-      newReactions[reactionType] = Math.max(0, newReactions[reactionType] - 1);
-    } else {
-      // Add reaction
-      newUserReactions.add(reactionType);
-      newReactions[reactionType] = newReactions[reactionType] + 1;
-    }
-
-    setUserReactions(newUserReactions);
-    setReactions(newReactions);
-    
-    if (onReactionChange) {
-      onReactionChange(postId, newReactions);
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (mine === type) {
+        // Toggle off
+        await supabase.from("post_reactions").delete().eq("post_id", postId).eq("user_id", userId);
+      } else {
+        // Upsert single reaction per user per post (unique constraint)
+        await supabase
+          .from("post_reactions")
+          .upsert(
+            { post_id: postId, user_id: userId, reaction_type: type },
+            { onConflict: "post_id,user_id" }
+          );
+      }
+      await load();
+    } catch (e: any) {
+      toast({ title: "Reaction failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
     <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-800">
-      {reactionTypes.map((reaction) => {
-        const Icon = reaction.icon;
-        const isActive = userReactions.has(reaction.type);
-        
+      {REACTIONS.map((r) => {
+        const Icon = r.icon;
+        const active = mine === r.type;
         return (
           <Button
-            key={reaction.type}
+            key={r.type}
             variant="ghost"
             size="sm"
-            onClick={() => handleReaction(reaction.type)}
+            disabled={busy}
+            onClick={() => handleClick(r.type)}
             className={cn(
-              "flex items-center space-x-1 text-slate-400 hover:bg-slate-800 transition-colors",
-              isActive && reaction.color
+              "flex items-center space-x-1 hover:bg-slate-800",
+              active ? r.color : "text-slate-400"
             )}
           >
-            <Icon className="w-4 h-4" />
-            <span className="text-sm">{reaction.count}</span>
-            <span className="text-xs hidden sm:inline">{reaction.label}</span>
+            <Icon className={cn("w-4 h-4", active && "fill-current")} />
+            <span className="text-sm">{counts[r.type] ?? 0}</span>
+            <span className="text-xs hidden sm:inline">{r.label}</span>
           </Button>
         );
       })}

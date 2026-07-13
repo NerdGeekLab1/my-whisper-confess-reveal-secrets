@@ -290,6 +290,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                       <TableHead className="text-slate-300">Email</TableHead>
                       <TableHead className="text-slate-300">Verified</TableHead>
                       <TableHead className="text-slate-300">Joined</TableHead>
+                      <TableHead className="text-slate-300">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -304,6 +305,49 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                         </TableCell>
                         <TableCell className="text-slate-300">
                           {profile.joined_date ? new Date(profile.joined_date).toLocaleDateString() : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1 flex-wrap">
+                            <Button size="sm" variant="outline" className="border-slate-600 text-slate-200"
+                              onClick={async () => {
+                                const next = !profile.is_verified;
+                                await supabase.from("profiles").update({ is_verified: next }).eq("id", profile.id);
+                                await logAdminAction({ actionType: "user_verify", targetTable: "profiles", targetId: profile.id, summary: `${next ? "Verified" : "Unverified"} ${profile.username || profile.id.slice(0,8)}` });
+                                setProfiles(p => p.map(x => x.id === profile.id ? { ...x, is_verified: next } : x));
+                              }}>
+                              {profile.is_verified ? "Unverify" : "Verify"}
+                            </Button>
+                            <Button size="sm" variant="outline" className="border-purple-600 text-purple-300"
+                              onClick={async () => {
+                                if (!confirm(`Promote ${profile.username} to admin?`)) return;
+                                const { error } = await supabase.from("user_roles").insert({ user_id: profile.id, role: 'admin' as any });
+                                if (error && !error.message.includes("duplicate")) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
+                                await logAdminAction({ actionType: "role_grant_admin", targetTable: "user_roles", targetId: profile.id, summary: `Promoted ${profile.username || profile.id.slice(0,8)} to admin` });
+                                toast({ title: "Promoted to admin" });
+                              }}>
+                              Make admin
+                            </Button>
+                            <Button size="sm" variant="outline" className="border-yellow-600 text-yellow-300"
+                              onClick={async () => {
+                                if (!confirm(`Remove admin role from ${profile.username}?`)) return;
+                                const { error } = await supabase.from("user_roles").delete().eq("user_id", profile.id).eq("role", 'admin' as any);
+                                if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
+                                await logAdminAction({ actionType: "role_revoke_admin", targetTable: "user_roles", targetId: profile.id, summary: `Revoked admin from ${profile.username || profile.id.slice(0,8)}` });
+                                toast({ title: "Admin revoked" });
+                              }}>
+                              Demote
+                            </Button>
+                            <Button size="sm" variant="outline" className="border-red-600 text-red-400"
+                              onClick={async () => {
+                                if (!confirm(`Delete ALL posts & diary from ${profile.username}? User account remains but content is purged.`)) return;
+                                await supabase.from("posts").delete().eq("user_id", profile.id);
+                                await supabase.from("diary_entries").delete().eq("user_id", profile.id);
+                                await logAdminAction({ actionType: "user_purge_content", targetTable: "profiles", targetId: profile.id, summary: `Purged content for ${profile.username || profile.id.slice(0,8)}` });
+                                toast({ title: "Content purged" });
+                              }}>
+                              <Trash2 className="w-3 h-3 mr-1" />Purge
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
