@@ -48,12 +48,47 @@ const SAMPLE_POSTS = [
     content: "Second SIM card. Locked. He claimed it was for work. The truth came out three weeks later. Trust your gut — it's almost always right.",
     category: "marriage",
   },
+  {
+    title: "Micro-cheating on Instagram DMs",
+    content: "It wasn't 'physical' but the flirty DMs, the late-night 'you up?' pattern, the hiding of the screen — that was betrayal all the same. Naming it helped me leave.",
+    category: "online",
+  },
+  {
+    title: "Rebound became my healing",
+    content: "Not romantic — a rebound into myself. Painting, boxing, therapy, journaling. Six months later I don't recognize the broken person from January.",
+    category: "healing",
+  },
+  {
+    title: "Family took her side",
+    content: "His mother literally told me 'boys will be boys' when I showed her the proof. I lost a marriage AND an in-law family in one week. Chosen family is real family.",
+    category: "family",
+  },
+  {
+    title: "Two years of gaslighting exposed in one voicemail",
+    content: "He butt-dialed me while bragging to his friend. Everything I doubted about myself — every 'you're crazy' — was recorded in 4 minutes.",
+    category: "long-term",
+  },
 ];
 
 const SAMPLE_DIARY = [
   { title: "Day 1 — Free", content: "Today I packed my things and left. My hands wouldn't stop shaking but my mind has never been clearer.", mood: "anxious" },
   { title: "Small wins", content: "Made coffee without crying. Ate breakfast. Went for a walk. These tiny things feel like mountains.", mood: "neutral" },
   { title: "Therapy helped", content: "First session today. She said grief over betrayal is real grief. I felt validated for the first time in months.", mood: "hopeful" },
+  { title: "Anger week", content: "Anger showed up this week. Punched a pillow. Screamed in the car. Better out than eating me alive.", mood: "angry" },
+  { title: "First laugh", content: "Genuine belly laugh at a friend's dumb joke. Felt guilty for 2 seconds then decided joy is allowed.", mood: "hopeful" },
+];
+
+const SAMPLE_LOYALTY = [
+  { partner_name: "Alex R.", overall_score: 34, trust_score: 30, communication_score: 40, commitment_score: 32, red_flags: ["Hides phone", "Vague about weekends", "Flirty DMs"], green_flags: ["Public about relationship"], recommendation: "High-risk pattern — consider a direct conversation with boundaries.", analysis: "Multiple secrecy signals, weak transparency." },
+  { partner_name: "Jordan M.", overall_score: 78, trust_score: 82, communication_score: 75, commitment_score: 77, red_flags: ["Occasional jealousy"], green_flags: ["Transparent finances", "Meets your friends", "Consistent effort"], recommendation: "Strong foundation with minor friction — invest in communication rituals.", analysis: "Overall healthy dynamic with room to strengthen conflict resolution." },
+  { partner_name: "Sam T.", overall_score: 55, trust_score: 50, communication_score: 60, commitment_score: 55, red_flags: ["Emotional distance", "Avoids future planning"], green_flags: ["Never lies overtly"], recommendation: "Mixed signals — clarify what commitment means to both of you.", analysis: "Not deceitful, but avoidant patterns dominate." },
+];
+
+const SAMPLE_SOUL_POSTS = [
+  { title: "Numb after 3 years", content: "I feel like I've forgotten how to want things. Anyone else ever hit that wall where nothing excites you anymore?", mood: "numb", author_gender: "male", target_gender: "female" },
+  { title: "Late-night thoughts", content: "It's 2am and my brain won't shut up. Would love to hear from someone who gets it.", mood: "anxious", author_gender: "female", target_gender: "male" },
+  { title: "Trying to trust again", content: "Started dating someone new. He's kind. Why does kindness scare me so much?", mood: "hopeful", author_gender: "female", target_gender: "male" },
+  { title: "Missing someone I shouldn't", content: "Blocked them 8 months ago. Still catch myself scrolling their name. What's wrong with me?", mood: "conflicted", author_gender: "male", target_gender: "female" },
 ];
 
 Deno.serve(async (req) => {
