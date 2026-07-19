@@ -162,16 +162,18 @@ Deno.serve(async (req) => {
 
     const demoUserId = created["user@demo.com"];
 
-    // Reset wipes only demo-user-owned posts + diary (preserves real user content)
+    // Reset wipes only demo-user-owned records (preserves real user content)
     if (reset && demoUserId) {
       await admin.from("posts").delete().eq("user_id", demoUserId);
       await admin.from("diary_entries").delete().eq("user_id", demoUserId);
+      await admin.from("loyalty_scores").delete().eq("user_id", demoUserId);
+      await admin.from("soul_posts").delete().eq("author_id", demoUserId);
     }
 
     // Seed posts
     const { count: existingPosts } = await admin.from("posts").select("id", { count: "exact", head: true });
     let postsSeeded = false;
-    if (demoUserId && (reset || (existingPosts ?? 0) < 3)) {
+    if (demoUserId && (reset || (existingPosts ?? 0) < 5)) {
       const rows = SAMPLE_POSTS.map((p) => ({
         ...p,
         user_id: demoUserId,
@@ -181,6 +183,56 @@ Deno.serve(async (req) => {
       await admin.from("posts").insert(rows);
       postsSeeded = true;
     }
+
+    // Seed diary
+    let diarySeeded = false;
+    if (demoUserId) {
+      const { count: existingDiary } = await admin
+        .from("diary_entries")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", demoUserId);
+      if (reset || (existingDiary ?? 0) === 0) {
+        await admin.from("diary_entries").insert(
+          SAMPLE_DIARY.map((d) => ({ ...d, user_id: demoUserId, is_private: true }))
+        );
+        diarySeeded = true;
+      }
+    }
+
+    // Seed loyalty scores (partner checks)
+    let loyaltySeeded = false;
+    if (demoUserId) {
+      const { count } = await admin
+        .from("loyalty_scores")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", demoUserId);
+      if (reset || (count ?? 0) === 0) {
+        await admin.from("loyalty_scores").insert(
+          SAMPLE_LOYALTY.map((l) => ({ ...l, user_id: demoUserId }))
+        );
+        loyaltySeeded = true;
+      }
+    }
+
+    // Seed soul_posts
+    let soulSeeded = false;
+    if (demoUserId) {
+      const { count } = await admin
+        .from("soul_posts")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", demoUserId);
+      if (reset || (count ?? 0) === 0) {
+        await admin.from("soul_posts").insert(
+          SAMPLE_SOUL_POSTS.map((s) => ({ ...s, author_id: demoUserId, status: "open" }))
+        );
+        soulSeeded = true;
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, reset, created, postsSeeded, diarySeeded, loyaltySeeded, soulSeeded }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
 
     // Seed diary
     let diarySeeded = false;
