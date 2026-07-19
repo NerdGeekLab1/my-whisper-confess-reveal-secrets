@@ -233,26 +233,6 @@ Deno.serve(async (req) => {
       JSON.stringify({ success: true, reset, created, postsSeeded, diarySeeded, loyaltySeeded, soulSeeded }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
-    // Seed diary
-    let diarySeeded = false;
-    if (demoUserId) {
-      const { count: existingDiary } = await admin
-        .from("diary_entries")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", demoUserId);
-      if (reset || (existingDiary ?? 0) === 0) {
-        await admin.from("diary_entries").insert(
-          SAMPLE_DIARY.map((d) => ({ ...d, user_id: demoUserId, is_private: true }))
-        );
-        diarySeeded = true;
-      }
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, reset, created, postsSeeded, diarySeeded }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (e) {
     console.error("seed-demo error", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
