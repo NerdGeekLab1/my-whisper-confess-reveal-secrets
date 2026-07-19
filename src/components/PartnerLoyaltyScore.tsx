@@ -126,11 +126,16 @@ const PartnerLoyaltyScore = () => {
         familyIntegration: getScoreFromValue(formData.familyIntegration, 'family')
       };
 
-      const overallScore = Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / Object.keys(scores).length);
-      
+      const baseScore = Object.values(scores).reduce((a, b) => a + b, 0) / Object.keys(scores).length;
+      // Social transparency boost: more filled verifiable handles = more openness signal (up to +8)
+      const filledHandles = Object.values(socialHandles).filter((v) => v && v.trim().length > 1).length;
+      const socialBoost = Math.min(8, filledHandles * 1.2);
+      const overallScore = Math.min(100, Math.round(baseScore + socialBoost));
+
+      const trustAdj = Math.min(100, Math.round((scores.trustLevel + scores.financialTransparency + scores.socialMediaBehavior) / 3 + socialBoost));
       const breakdown = {
         communication: Math.round((scores.communicationFrequency + scores.conflictResolution) / 2),
-        trust: Math.round((scores.trustLevel + scores.financialTransparency + scores.socialMediaBehavior) / 3),
+        trust: trustAdj,
         commitment: Math.round((scores.futureCommitment + scores.relationshipDuration) / 2),
         compatibility: Math.round((scores.sharedInterests + scores.physicalIntimacy + scores.emotionalSupport + scores.familyIntegration) / 4)
       };
