@@ -22,10 +22,15 @@ const defaultPrefs = { comments: true, reactions: true, reports: true, newslette
 
 const UserSettingsModal = ({ open, onClose, user, onUpdated }: Props) => {
   const [username, setUsername] = useState(user.username);
+  const [bio, setBio] = useState("");
+  const [gender, setGender] = useState<string>("");
   const [prefs, setPrefs] = useState(defaultPrefs);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<any[]>([]);
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [changingPass, setChangingPass] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
