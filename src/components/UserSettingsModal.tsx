@@ -18,7 +18,11 @@ interface Props {
   onUpdated?: (u: Partial<AppUser>) => void;
 }
 
-const defaultPrefs = { comments: true, reactions: true, reports: true, newsletter: false };
+const defaultPrefs = {
+  comments: true, reactions: true, reports: true, newsletter: false,
+  email_comments: true, email_reactions: false, email_reports: true, email_newsletter: false,
+  push_comments: true, push_reactions: true, push_reports: true,
+};
 
 const UserSettingsModal = ({ open, onClose, user, onUpdated }: Props) => {
   const [username, setUsername] = useState(user.username);
