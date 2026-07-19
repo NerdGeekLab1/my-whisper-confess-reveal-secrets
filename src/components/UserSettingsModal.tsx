@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, User as UserIcon, Bell, History, BookOpen, MessageCircle, Star } from "lucide-react";
+import { Loader2, User as UserIcon, Bell, History, BookOpen, MessageCircle, Star, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { AppUser } from "@/hooks/useAuth";
@@ -22,10 +22,15 @@ const defaultPrefs = { comments: true, reactions: true, reports: true, newslette
 
 const UserSettingsModal = ({ open, onClose, user, onUpdated }: Props) => {
   const [username, setUsername] = useState(user.username);
+  const [bio, setBio] = useState("");
+  const [gender, setGender] = useState<string>("");
   const [prefs, setPrefs] = useState(defaultPrefs);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<any[]>([]);
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [changingPass, setChangingPass] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -34,11 +39,13 @@ const UserSettingsModal = ({ open, onClose, user, onUpdated }: Props) => {
       setLoading(true);
       const { data } = await supabase
         .from("profiles")
-        .select("username, notification_prefs")
+        .select("username, notification_prefs, bio, gender")
         .eq("id", user.id)
         .maybeSingle();
       if (data) {
         setUsername(data.username || user.username);
+        setBio((data as any).bio || "");
+        setGender((data as any).gender || "");
         setPrefs({ ...defaultPrefs, ...(data.notification_prefs as any) });
       }
       const [posts, diary, loyalty] = await Promise.all([
@@ -58,14 +65,24 @@ const UserSettingsModal = ({ open, onClose, user, onUpdated }: Props) => {
 
   const saveProfile = async () => {
     setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ username, notification_prefs: prefs })
-      .eq("id", user.id);
+    const payload: any = { username, notification_prefs: prefs, bio };
+    if (gender) payload.gender = gender;
+    const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
     setSaving(false);
     if (error) return toast({ title: "Save failed", description: error.message, variant: "destructive" });
     toast({ title: "Settings saved" });
     onUpdated?.({ username });
+  };
+
+  const changePassword = async () => {
+    if (newPass.length < 8) return toast({ title: "Password too short", description: "Use at least 8 characters.", variant: "destructive" });
+    if (newPass !== confirmPass) return toast({ title: "Passwords don't match", variant: "destructive" });
+    setChangingPass(true);
+    const { error } = await supabase.auth.updateUser({ password: newPass });
+    setChangingPass(false);
+    if (error) return toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    setNewPass(""); setConfirmPass("");
+    toast({ title: "Password updated" });
   };
 
   const iconFor = (t: string) => t === "post" ? MessageCircle : t === "diary" ? BookOpen : Star;
@@ -78,8 +95,9 @@ const UserSettingsModal = ({ open, onClose, user, onUpdated }: Props) => {
           <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>
         ) : (
           <Tabs defaultValue="profile">
-            <TabsList className="bg-slate-800">
+            <TabsList className="bg-slate-800 flex-wrap h-auto">
               <TabsTrigger value="profile"><UserIcon className="w-4 h-4 mr-1" />Profile</TabsTrigger>
+              <TabsTrigger value="security"><KeyRound className="w-4 h-4 mr-1" />Security</TabsTrigger>
               <TabsTrigger value="notif"><Bell className="w-4 h-4 mr-1" />Notifications</TabsTrigger>
               <TabsTrigger value="history"><History className="w-4 h-4 mr-1" />History</TabsTrigger>
             </TabsList>

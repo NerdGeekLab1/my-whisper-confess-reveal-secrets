@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Search, BookOpen, User, LogOut, Shield, Star } from "lucide-react";
+import { Heart, MessageCircle, Search, BookOpen, User, LogOut, Shield, Star, Sparkles } from "lucide-react";
 import snakesListLogo from "@/assets/snakeslist-logo.png.asset.json";
 
 interface HeaderProps {
@@ -88,6 +88,14 @@ const Header = ({
             >
               <BookOpen className="w-4 h-4 mr-2" />
               My Diary
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => window.location.assign("/soul-connect")}
+              size="sm" className="h-9 px-2.5 text-sm text-pink-300 hover:text-white hover:bg-pink-900/30"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Soul Connect
             </Button>
             <Button
               variant="ghost"

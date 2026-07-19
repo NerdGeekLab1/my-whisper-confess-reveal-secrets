@@ -352,6 +352,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bio: string | null
           created_at: string | null
           email: string | null
           gender: Database["public"]["Enums"]["gender_type"] | null
@@ -364,6 +365,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          bio?: string | null
           created_at?: string | null
           email?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
@@ -376,6 +378,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          bio?: string | null
           created_at?: string | null
           email?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null

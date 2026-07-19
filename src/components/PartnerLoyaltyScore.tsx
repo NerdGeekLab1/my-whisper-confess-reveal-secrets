@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Star, AlertTriangle, CheckCircle, TrendingUp, Users, Clock, Shield, History, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -125,11 +126,16 @@ const PartnerLoyaltyScore = () => {
         familyIntegration: getScoreFromValue(formData.familyIntegration, 'family')
       };
 
-      const overallScore = Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / Object.keys(scores).length);
-      
+      const baseScore = Object.values(scores).reduce((a, b) => a + b, 0) / Object.keys(scores).length;
+      // Social transparency boost: more filled verifiable handles = more openness signal (up to +8)
+      const filledHandles = Object.values(socialHandles).filter((v) => v && v.trim().length > 1).length;
+      const socialBoost = Math.min(8, filledHandles * 1.2);
+      const overallScore = Math.min(100, Math.round(baseScore + socialBoost));
+
+      const trustAdj = Math.min(100, Math.round((scores.trustLevel + scores.financialTransparency + scores.socialMediaBehavior) / 3 + socialBoost));
       const breakdown = {
         communication: Math.round((scores.communicationFrequency + scores.conflictResolution) / 2),
-        trust: Math.round((scores.trustLevel + scores.financialTransparency + scores.socialMediaBehavior) / 3),
+        trust: trustAdj,
         commitment: Math.round((scores.futureCommitment + scores.relationshipDuration) / 2),
         compatibility: Math.round((scores.sharedInterests + scores.physicalIntimacy + scores.emotionalSupport + scores.familyIntegration) / 4)
       };
@@ -282,20 +288,29 @@ const PartnerLoyaltyScore = () => {
 
               <div className="space-y-3 border border-slate-700 rounded-lg p-4 bg-slate-800/40">
                 <Label className="text-slate-200 font-semibold">Partner's Social Media Handles</Label>
-                <p className="text-xs text-slate-400">Used for cross-checking against Culprit Search. Kept private to you.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p className="text-xs text-slate-400">Used for cross-checking against Culprit Search. Kept private to you. Filled handles show a green dot.</p>
+                <Tabs defaultValue={SOCIAL_PLATFORMS[0].key} className="w-full">
+                  <TabsList className="bg-slate-900 flex-wrap h-auto justify-start">
+                    {SOCIAL_PLATFORMS.map((p) => (
+                      <TabsTrigger key={p.key} value={p.key} className="text-xs data-[state=active]:bg-slate-700">
+                        {p.label}
+                        {socialHandles[p.key]?.trim() && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
                   {SOCIAL_PLATFORMS.map((p) => (
-                    <div key={p.key}>
-                      <Label className="text-slate-400 text-xs">{p.label}</Label>
+                    <TabsContent key={p.key} value={p.key} className="mt-3">
+                      <Label className="text-slate-400 text-xs">{p.label} handle / URL</Label>
                       <Input
                         value={socialHandles[p.key] || ""}
                         onChange={(e) => setHandle(p.key, e.target.value)}
-                        placeholder={p.key === "phone" ? "+1..." : `@${p.key}_handle`}
+                        placeholder={p.key === "phone" ? "+1 555 123 4567" : p.key === "email" ? "name@example.com" : `@${p.key}_handle or full URL`}
                         className="bg-slate-900 border-slate-600 text-white"
                       />
-                    </div>
+                      <p className="text-[11px] text-slate-500 mt-1">Each filled platform adds signal weight to the trust score.</p>
+                    </TabsContent>
                   ))}
-                </div>
+                </Tabs>
               </div>
 
 
