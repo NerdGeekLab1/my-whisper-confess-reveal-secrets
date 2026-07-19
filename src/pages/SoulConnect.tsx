@@ -14,6 +14,7 @@ import GenderPrompt from "@/components/GenderPrompt";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AuthModal from "@/components/AuthModal";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
@@ -317,6 +318,12 @@ const SoulConnect = () => {
       <Header currentPage="soul-connect" setCurrentPage={(p: string) => { if (p === "confessions") navigate("/"); }} user={user} handleLogout={handleLogout} handleRestrictedAction={handleRestrictedAction} setShowAuthModal={setShowAuthModal} setShowPostCreator={setShowPostCreator} />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Breadcrumbs items={[
+          { label: "Home", onClick: () => navigate("/") },
+          { label: "Community" },
+          { label: openThread ? "Thread" : "Soul Connect", onClick: openThread ? () => setOpenThread(null) : undefined },
+          ...(openThread ? [{ label: openThread.title || "Anonymous thread" }] : []),
+        ]} />
         <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-slate-400 mb-3">
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </Button>

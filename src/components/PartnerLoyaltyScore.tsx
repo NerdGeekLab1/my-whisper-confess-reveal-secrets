@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Star, AlertTriangle, CheckCircle, TrendingUp, Users, Clock, Shield, History, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 interface LoyaltyFormData {
   partnerName: string;
@@ -244,6 +245,12 @@ const PartnerLoyaltyScore = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">
       <div className="container mx-auto max-w-4xl">
+        <Breadcrumbs items={[
+          { label: "Home", onClick: () => (window.location.href = "/") },
+          { label: "Tools" },
+          { label: "Partner Loyalty Score" },
+          ...(result ? [{ label: "Results" }] : []),
+        ]} />
         <div className="mb-8">
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg flex items-center justify-center">

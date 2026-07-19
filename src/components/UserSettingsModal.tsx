@@ -18,7 +18,11 @@ interface Props {
   onUpdated?: (u: Partial<AppUser>) => void;
 }
 
-const defaultPrefs = { comments: true, reactions: true, reports: true, newsletter: false };
+const defaultPrefs = {
+  comments: true, reactions: true, reports: true, newsletter: false,
+  email_comments: true, email_reactions: false, email_reports: true, email_newsletter: false,
+  push_comments: true, push_reactions: true, push_reports: true,
+};
 
 const UserSettingsModal = ({ open, onClose, user, onUpdated }: Props) => {
   const [username, setUsername] = useState(user.username);
@@ -120,15 +124,32 @@ const UserSettingsModal = ({ open, onClose, user, onUpdated }: Props) => {
               </Button>
             </TabsContent>
             <TabsContent value="notif" className="space-y-4 mt-4">
+              <p className="text-xs text-slate-400">Choose how you want to be notified. In-app is always on when the app is open; email &amp; push are honored where available.</p>
               {[
                 { k: "comments", label: "New comments on my posts" },
                 { k: "reactions", label: "New reactions on my posts" },
                 { k: "reports", label: "Admin decisions on reports" },
                 { k: "newsletter", label: "Community newsletter" },
               ].map(({ k, label }) => (
-                <div key={k} className="flex items-center justify-between bg-slate-800 rounded-md px-4 py-3">
-                  <span className="text-slate-200 text-sm">{label}</span>
-                  <Switch checked={(prefs as any)[k]} onCheckedChange={(v) => setPrefs((p) => ({ ...p, [k]: v }))} />
+                <div key={k} className="bg-slate-800 rounded-md px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-200 text-sm font-medium">{label}</span>
+                    <Switch checked={(prefs as any)[k]} onCheckedChange={(v) => setPrefs((p) => ({ ...p, [k]: v }))} />
+                  </div>
+                  {(prefs as any)[k] && (
+                    <div className="flex items-center gap-4 pl-2 pt-1 border-t border-slate-700/60">
+                      <label className="flex items-center gap-2 text-xs text-slate-300">
+                        <Switch checked={(prefs as any)[`email_${k}`] ?? false} onCheckedChange={(v) => setPrefs((p) => ({ ...p, [`email_${k}`]: v }))} />
+                        Email
+                      </label>
+                      {k !== "newsletter" && (
+                        <label className="flex items-center gap-2 text-xs text-slate-300">
+                          <Switch checked={(prefs as any)[`push_${k}`] ?? false} onCheckedChange={(v) => setPrefs((p) => ({ ...p, [`push_${k}`]: v }))} />
+                          Push
+                        </label>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
               <Button onClick={saveProfile} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
