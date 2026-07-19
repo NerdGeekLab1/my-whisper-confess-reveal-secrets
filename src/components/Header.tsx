@@ -91,6 +91,14 @@ const Header = ({
             </Button>
             <Button
               variant="ghost"
+              onClick={() => window.location.assign("/soul-connect")}
+              size="sm" className="h-9 px-2.5 text-sm text-pink-300 hover:text-white hover:bg-pink-900/30"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Soul Connect
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => setCurrentPage("helpline")}
               size="sm" className={`h-9 px-2.5 text-sm ${currentPage === "helpline" ? "text-white bg-slate-800" : "text-slate-300 hover:text-white hover:bg-slate-800/60"}`}
             >
