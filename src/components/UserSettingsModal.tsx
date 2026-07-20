@@ -16,6 +16,7 @@ interface Props {
   onClose: () => void;
   user: AppUser;
   onUpdated?: (u: Partial<AppUser>) => void;
+  initialTab?: "profile" | "security" | "notif" | "history";
 }
 
 const defaultPrefs = {
@@ -24,7 +25,7 @@ const defaultPrefs = {
   push_comments: true, push_reactions: true, push_reports: true,
 };
 
-const UserSettingsModal = ({ open, onClose, user, onUpdated }: Props) => {
+const UserSettingsModal = ({ open, onClose, user, onUpdated, initialTab = "profile" }: Props) => {
   const [username, setUsername] = useState(user.username);
   const [bio, setBio] = useState("");
   const [gender, setGender] = useState<string>("");
@@ -98,7 +99,7 @@ const UserSettingsModal = ({ open, onClose, user, onUpdated }: Props) => {
         {loading ? (
           <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>
         ) : (
-          <Tabs defaultValue="profile">
+          <Tabs defaultValue={initialTab} key={initialTab}>
             <TabsList className="bg-slate-800 flex-wrap h-auto">
               <TabsTrigger value="profile"><UserIcon className="w-4 h-4 mr-1" />Profile</TabsTrigger>
               <TabsTrigger value="security"><KeyRound className="w-4 h-4 mr-1" />Security</TabsTrigger>
@@ -121,6 +122,22 @@ const UserSettingsModal = ({ open, onClose, user, onUpdated }: Props) => {
               </div>
               <Button onClick={saveProfile} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save profile"}
+              </Button>
+            </TabsContent>
+            <TabsContent value="security" className="space-y-4 mt-4">
+              <p className="text-xs text-slate-400">Choose a strong password with at least 8 characters.</p>
+              <div className="space-y-1">
+                <Label>New password</Label>
+                <Input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)}
+                  className="bg-slate-800 border-slate-600" placeholder="••••••••" />
+              </div>
+              <div className="space-y-1">
+                <Label>Confirm password</Label>
+                <Input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)}
+                  className="bg-slate-800 border-slate-600" placeholder="••••••••" />
+              </div>
+              <Button onClick={changePassword} disabled={changingPass || !newPass} className="bg-blue-600 hover:bg-blue-700">
+                {changingPass ? <Loader2 className="w-4 h-4 animate-spin" /> : "Change password"}
               </Button>
             </TabsContent>
             <TabsContent value="notif" className="space-y-4 mt-4">
