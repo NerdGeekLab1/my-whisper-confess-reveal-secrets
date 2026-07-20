@@ -124,6 +124,22 @@ const UserSettingsModal = ({ open, onClose, user, onUpdated, initialTab = "profi
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save profile"}
               </Button>
             </TabsContent>
+            <TabsContent value="security" className="space-y-4 mt-4">
+              <p className="text-xs text-slate-400">Choose a strong password with at least 8 characters.</p>
+              <div className="space-y-1">
+                <Label>New password</Label>
+                <Input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)}
+                  className="bg-slate-800 border-slate-600" placeholder="••••••••" />
+              </div>
+              <div className="space-y-1">
+                <Label>Confirm password</Label>
+                <Input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)}
+                  className="bg-slate-800 border-slate-600" placeholder="••••••••" />
+              </div>
+              <Button onClick={changePassword} disabled={changingPass || !newPass} className="bg-blue-600 hover:bg-blue-700">
+                {changingPass ? <Loader2 className="w-4 h-4 animate-spin" /> : "Change password"}
+              </Button>
+            </TabsContent>
             <TabsContent value="notif" className="space-y-4 mt-4">
               <p className="text-xs text-slate-400">Choose how you want to be notified. In-app is always on when the app is open; email &amp; push are honored where available.</p>
               {[
