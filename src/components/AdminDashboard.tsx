@@ -215,18 +215,20 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-7 bg-slate-800">
             <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-white">Overview</TabsTrigger>
             <TabsTrigger value="users" className="text-slate-300 data-[state=active]:text-white">Users</TabsTrigger>
             <TabsTrigger value="content" className="text-slate-300 data-[state=active]:text-white">Content</TabsTrigger>
             <TabsTrigger value="reports" className="text-slate-300 data-[state=active]:text-white">Reports</TabsTrigger>
+            <TabsTrigger value="partners" className="text-slate-300 data-[state=active]:text-white">Partner Checks</TabsTrigger>
             <TabsTrigger value="audit" className="text-slate-300 data-[state=active]:text-white">
-              <ScrollText className="w-4 h-4 mr-1" />Audit Log
+              <ScrollText className="w-4 h-4 mr-1" />Audit
             </TabsTrigger>
             <TabsTrigger value="config" className="text-slate-300 data-[state=active]:text-white">
-              <Settings className="w-4 h-4 mr-1" />Configuration
+              <Settings className="w-4 h-4 mr-1" />Config
             </TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
