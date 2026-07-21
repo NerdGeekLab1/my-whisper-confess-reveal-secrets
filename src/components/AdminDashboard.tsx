@@ -14,8 +14,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AdminConfiguration from "@/components/AdminConfiguration";
 import AdminAuditLog from "@/components/AdminAuditLog";
+import AdminPartnerChecks from "@/components/AdminPartnerChecks";
 import ReviewReportModal from "@/components/ReviewReportModal";
 import { logAdminAction } from "@/lib/adminAudit";
+
 
 interface AdminDashboardProps {
   user: any;
