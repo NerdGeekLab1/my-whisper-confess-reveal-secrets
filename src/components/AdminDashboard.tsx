@@ -593,6 +593,10 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="partners" className="space-y-6">
+            <AdminPartnerChecks />
+          </TabsContent>
+
           <TabsContent value="config" className="space-y-6">
             <AdminConfiguration />
           </TabsContent>
@@ -600,6 +604,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
           <TabsContent value="audit" className="space-y-6">
             <AdminAuditLog />
           </TabsContent>
+
         </Tabs>
 
         <ReviewReportModal
