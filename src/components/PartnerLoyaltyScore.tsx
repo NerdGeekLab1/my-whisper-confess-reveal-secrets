@@ -160,7 +160,7 @@ const PartnerLoyaltyScore = () => {
       // Auto-save to database
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from("loyalty_scores").insert({
+        await (supabase.from("loyalty_scores") as any).insert({
           user_id: user.id,
           partner_name: formData.partnerName,
           overall_score: overallScore,
@@ -173,6 +173,7 @@ const PartnerLoyaltyScore = () => {
           partner_social_handles: socialHandles as any,
           misc_details: miscDetails as any,
         });
+
         fetchSavedScores();
       }
 
