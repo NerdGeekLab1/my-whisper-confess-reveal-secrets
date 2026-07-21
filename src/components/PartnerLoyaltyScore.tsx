@@ -171,6 +171,7 @@ const PartnerLoyaltyScore = () => {
           recommendations: loyaltyResult.recommendations,
           form_data: formData as any,
           partner_social_handles: socialHandles as any,
+          misc_details: miscDetails as any,
         });
         fetchSavedScores();
       }
@@ -181,6 +182,7 @@ const PartnerLoyaltyScore = () => {
       });
     }, 2000);
   };
+
 
   const getScoreFromValue = (value: string, type: string): number => {
     const scoreMap: Record<string, Record<string, number>> = {
