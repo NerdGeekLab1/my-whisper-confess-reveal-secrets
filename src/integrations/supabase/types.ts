@@ -157,11 +157,13 @@ export type Database = {
           created_at: string
           form_data: Json
           id: string
+          misc_details: Json
           overall_score: number
           partner_name: string
           partner_social_handles: Json
           recommendations: string[]
           strengths: string[]
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -171,11 +173,13 @@ export type Database = {
           created_at?: string
           form_data?: Json
           id?: string
+          misc_details?: Json
           overall_score: number
           partner_name: string
           partner_social_handles?: Json
           recommendations?: string[]
           strengths?: string[]
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -185,11 +189,13 @@ export type Database = {
           created_at?: string
           form_data?: Json
           id?: string
+          misc_details?: Json
           overall_score?: number
           partner_name?: string
           partner_social_handles?: Json
           recommendations?: string[]
           strengths?: string[]
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

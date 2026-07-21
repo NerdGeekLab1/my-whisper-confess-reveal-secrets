@@ -88,8 +88,20 @@ const PartnerLoyaltyScore = () => {
   }, []);
 
   const [socialHandles, setSocialHandles] = useState<Record<string, string>>({});
+  const [miscDetails, setMiscDetails] = useState({
+    age: "",
+    occupation: "",
+    city: "",
+    metVia: "",
+    livingTogether: "",
+    prevRelationships: "",
+    height: "",
+    education: "",
+    notes: "",
+  });
 
   const setHandle = (k: SocialKey, v: string) => setSocialHandles((prev) => ({ ...prev, [k]: v }));
+
 
   const fetchSavedScores = async () => {
     const { data } = await supabase
@@ -148,7 +160,7 @@ const PartnerLoyaltyScore = () => {
       // Auto-save to database
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from("loyalty_scores").insert({
+        await (supabase.from("loyalty_scores") as any).insert({
           user_id: user.id,
           partner_name: formData.partnerName,
           overall_score: overallScore,
@@ -159,7 +171,9 @@ const PartnerLoyaltyScore = () => {
           recommendations: loyaltyResult.recommendations,
           form_data: formData as any,
           partner_social_handles: socialHandles as any,
+          misc_details: miscDetails as any,
         });
+
         fetchSavedScores();
       }
 
@@ -169,6 +183,7 @@ const PartnerLoyaltyScore = () => {
       });
     }, 2000);
   };
+
 
   const getScoreFromValue = (value: string, type: string): number => {
     const scoreMap: Record<string, Record<string, number>> = {
@@ -319,6 +334,50 @@ const PartnerLoyaltyScore = () => {
                   ))}
                 </Tabs>
               </div>
+
+              <div className="space-y-3 border border-slate-700 rounded-lg p-4 bg-slate-800/40">
+                <Label className="text-slate-200 font-semibold">Miscellaneous Details</Label>
+                <p className="text-xs text-slate-400">Optional context. Stored privately with your record and helps admins support you.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-slate-400 text-xs">Age</Label>
+                    <Input value={miscDetails.age} onChange={(e) => setMiscDetails({ ...miscDetails, age: e.target.value })} placeholder="e.g. 29" className="bg-slate-900 border-slate-600 text-white" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-400 text-xs">Occupation</Label>
+                    <Input value={miscDetails.occupation} onChange={(e) => setMiscDetails({ ...miscDetails, occupation: e.target.value })} placeholder="Software Engineer" className="bg-slate-900 border-slate-600 text-white" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-400 text-xs">City / Location</Label>
+                    <Input value={miscDetails.city} onChange={(e) => setMiscDetails({ ...miscDetails, city: e.target.value })} placeholder="Austin, TX" className="bg-slate-900 border-slate-600 text-white" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-400 text-xs">How you met</Label>
+                    <Input value={miscDetails.metVia} onChange={(e) => setMiscDetails({ ...miscDetails, metVia: e.target.value })} placeholder="Tinder, work, mutual friend…" className="bg-slate-900 border-slate-600 text-white" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-400 text-xs">Living together?</Label>
+                    <Input value={miscDetails.livingTogether} onChange={(e) => setMiscDetails({ ...miscDetails, livingTogether: e.target.value })} placeholder="yes / no / part-time" className="bg-slate-900 border-slate-600 text-white" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-400 text-xs">Previous serious relationships</Label>
+                    <Input value={miscDetails.prevRelationships} onChange={(e) => setMiscDetails({ ...miscDetails, prevRelationships: e.target.value })} placeholder="e.g. 2" className="bg-slate-900 border-slate-600 text-white" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-400 text-xs">Height</Label>
+                    <Input value={miscDetails.height} onChange={(e) => setMiscDetails({ ...miscDetails, height: e.target.value })} placeholder="5'10 / 178cm" className="bg-slate-900 border-slate-600 text-white" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-400 text-xs">Education</Label>
+                    <Input value={miscDetails.education} onChange={(e) => setMiscDetails({ ...miscDetails, education: e.target.value })} placeholder="University / degree" className="bg-slate-900 border-slate-600 text-white" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="text-slate-400 text-xs">Private notes</Label>
+                    <Input value={miscDetails.notes} onChange={(e) => setMiscDetails({ ...miscDetails, notes: e.target.value })} placeholder="Anything else worth remembering…" className="bg-slate-900 border-slate-600 text-white" />
+                  </div>
+                </div>
+              </div>
+
 
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
