@@ -88,8 +88,20 @@ const PartnerLoyaltyScore = () => {
   }, []);
 
   const [socialHandles, setSocialHandles] = useState<Record<string, string>>({});
+  const [miscDetails, setMiscDetails] = useState({
+    age: "",
+    occupation: "",
+    city: "",
+    metVia: "",
+    livingTogether: "",
+    prevRelationships: "",
+    height: "",
+    education: "",
+    notes: "",
+  });
 
   const setHandle = (k: SocialKey, v: string) => setSocialHandles((prev) => ({ ...prev, [k]: v }));
+
 
   const fetchSavedScores = async () => {
     const { data } = await supabase
