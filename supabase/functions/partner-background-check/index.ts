@@ -19,30 +19,47 @@ type Query = {
 
 const norm = (v: unknown) => String(v ?? "").trim().toLowerCase();
 
+type FieldMatch = {
+  field: string;
+  label: string;
+  weight: number;
+  awarded: number;
+  strength: "exact" | "partial" | "none";
+  query_value: string;
+  matched_value: string;
+};
+
 function scoreMatch(q: Query, rec: {
   name?: string; phone?: string; email?: string; location?: string;
-  socials?: Record<string, string>; extras?: Record<string, string>;
+  socials?: Record<string, string>;
 }) {
-  let score = 0;
-  const reasons: string[] = [];
-  const cmp = (a?: string, b?: string, w = 20, label = "") => {
+  const breakdown: FieldMatch[] = [];
+  const cmp = (field: string, label: string, weight: number, a?: string, b?: string) => {
     const A = norm(a), B = norm(b);
     if (!A || !B) return;
-    if (A === B) { score += w; reasons.push(`${label} exact`); }
-    else if (A.includes(B) || B.includes(A)) { score += Math.floor(w * 0.6); reasons.push(`${label} partial`); }
+    let strength: FieldMatch["strength"] = "none";
+    let awarded = 0;
+    if (A === B) { strength = "exact"; awarded = weight; }
+    else if (A.includes(B) || B.includes(A)) { strength = "partial"; awarded = Math.floor(weight * 0.6); }
+    if (strength !== "none") {
+      breakdown.push({ field, label, weight, awarded, strength, query_value: String(a), matched_value: String(b) });
+    }
   };
-  cmp(q.name, rec.name, 25, "name");
-  cmp(q.phone, rec.phone, 30, "phone");
-  cmp(q.email, rec.email, 30, "email");
-  cmp(q.location, rec.location, 10, "location");
+  cmp("name", "Name", 25, q.name, rec.name);
+  cmp("phone", "Phone", 30, q.phone, rec.phone);
+  cmp("email", "Email", 30, q.email, rec.email);
+  cmp("location", "Location", 10, q.location, rec.location);
   if (q.socials && rec.socials) {
     for (const [k, v] of Object.entries(q.socials)) {
       if (!v) continue;
       const r = rec.socials[k];
-      cmp(v.replace(/^@/, ""), (r || "").replace(/^@/, ""), 20, `${k}`);
+      cmp(`social:${k}`, k.charAt(0).toUpperCase() + k.slice(1), 20, v.replace(/^@/, ""), (r || "").replace(/^@/, ""));
     }
   }
-  return { score, reasons };
+  const totalAwarded = breakdown.reduce((s, b) => s + b.awarded, 0);
+  const totalPossible = breakdown.reduce((s, b) => s + b.weight, 0);
+  const confidence = totalPossible ? Math.round((totalAwarded / totalPossible) * 100) : 0;
+  return { score: totalAwarded, confidence, breakdown };
 }
 
 serve(async (req) => {
@@ -71,14 +88,14 @@ serve(async (req) => {
       });
       if (m.score > 0) candidates.push({
         source: "partner_check",
-        id: r.id,
+        match_ref: r.id,
         display_name: r.partner_name,
         location: misc.city,
-        score: r.overall_score,
         category: r.category,
         concerns: r.concerns,
         match_score: m.score,
-        match_reasons: m.reasons,
+        confidence: m.confidence,
+        breakdown: m.breakdown,
         created_at: r.created_at,
       });
     }
@@ -93,12 +110,12 @@ serve(async (req) => {
       });
       if (m.score > 0) candidates.push({
         source: "confession",
-        id: r.id,
-        post_id: r.post_id,
+        match_ref: r.post_id ?? r.id,
         display_name: r.subject_name,
         location: r.subject_location,
         match_score: m.score,
-        match_reasons: m.reasons,
+        confidence: m.confidence,
+        breakdown: m.breakdown,
         created_at: r.created_at,
       });
     }
@@ -118,7 +135,7 @@ serve(async (req) => {
             model: "google/gemini-3.6-flash",
             messages: [
               { role: "system", content: "You are a background-check analyst. In 2-4 short sentences, summarize how confidently the query matches internal records. Never reveal raw phone/email; refer to matched fields generically. Flag risk level (low/medium/high)." },
-              { role: "user", content: `Query: ${JSON.stringify(q)}\nMatches: ${JSON.stringify(top.map(t => ({ source: t.source, name: t.display_name, match_score: t.match_score, reasons: t.match_reasons, risk_hint: t.category ?? null })))}` },
+              { role: "user", content: `Query: ${JSON.stringify(q)}\nMatches: ${JSON.stringify(top.map(t => ({ source: t.source, confidence: t.confidence, fields: t.breakdown.map((b: any) => `${b.label}:${b.strength}`), risk_hint: t.category ?? null })))}` },
             ],
           }),
         });
@@ -127,13 +144,27 @@ serve(async (req) => {
       } catch (_) { /* ignore */ }
     }
 
-    // Sanitize matches for client — hide raw PII
+    // Sanitize matches for client — hide raw PII in breakdown
+    const mask = (v: string) => {
+      if (!v) return "";
+      if (v.length <= 2) return "••";
+      return `${v.slice(0, 1)}${"•".repeat(Math.max(1, v.length - 2))}${v.slice(-1)}`;
+    };
     const results = top.map((t) => ({
       source: t.source,
-      display_name: t.display_name ? `${String(t.display_name).charAt(0)}${"•".repeat(Math.max(1, String(t.display_name).length - 2))}${String(t.display_name).slice(-1)}` : "Unknown",
+      match_ref: t.match_ref,
+      display_name: t.display_name ? mask(String(t.display_name)) : "Unknown",
       location: t.location ?? null,
       match_score: Math.min(100, t.match_score),
-      match_reasons: t.match_reasons,
+      confidence: t.confidence,
+      breakdown: (t.breakdown as FieldMatch[]).map((b) => ({
+        field: b.field,
+        label: b.label,
+        weight: b.weight,
+        awarded: b.awarded,
+        strength: b.strength,
+        matched_value_masked: mask(b.matched_value),
+      })),
       category: t.category ?? null,
       concerns_count: Array.isArray(t.concerns) ? t.concerns.length : 0,
       created_at: t.created_at,
