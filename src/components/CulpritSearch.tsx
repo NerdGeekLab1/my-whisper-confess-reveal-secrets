@@ -37,12 +37,23 @@ const SOCIAL_PLATFORMS: { key: string; label: string }[] = [
   { key: "hinge", label: "Hinge" },
 ];
 
+interface FieldBreakdown {
+  field: string;
+  label: string;
+  weight: number;
+  awarded: number;
+  strength: "exact" | "partial";
+  matched_value_masked: string;
+}
+
 interface MatchResult {
   source: "partner_check" | "confession";
+  match_ref: string;
   display_name: string;
   location: string | null;
   match_score: number;
-  match_reasons: string[];
+  confidence: number;
+  breakdown: FieldBreakdown[];
   category: string | null;
   concerns_count: number;
   created_at: string;
@@ -50,6 +61,7 @@ interface MatchResult {
 
 const CulpritSearch = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [filters, setFilters] = useState<Filters>({
     name: "", phone: "", email: "", location: "", college: "", company: "", dob: "",
   });
@@ -58,6 +70,9 @@ const CulpritSearch = () => {
   const [results, setResults] = useState<MatchResult[]>([]);
   const [aiSummary, setAiSummary] = useState<string>("");
   const [total, setTotal] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [feedback, setFeedback] = useState<Record<string, "correct" | "incorrect">>({});
+  const [savingFeedback, setSavingFeedback] = useState<string | null>(null);
 
   const risk = (s: number): "high" | "medium" | "low" =>
     s >= 70 ? "high" : s >= 40 ? "medium" : "low";
