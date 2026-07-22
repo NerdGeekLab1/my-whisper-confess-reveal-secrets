@@ -313,15 +313,15 @@ const CulpritSearch = () => {
                                 return;
                               }
                               setSavingFeedback(key);
-                              const { error } = await supabase.from("background_check_feedback").insert({
+                              const { error } = await supabase.from("background_check_feedback").insert([{
                                 user_id: user.id,
                                 source: r.source,
                                 match_ref: r.match_ref,
                                 match_score: r.match_score,
                                 is_correct: kind === "correct",
-                                query_snapshot: { ...filters, socials },
-                                reasons: r.breakdown,
-                              });
+                                query_snapshot: { ...filters, socials } as any,
+                                reasons: r.breakdown as any,
+                              }]);
                               setSavingFeedback(null);
                               if (error) {
                                 toast({ title: "Couldn't save feedback", description: error.message, variant: "destructive" });
