@@ -209,11 +209,15 @@ const CulpritSearch = () => {
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-white">Potential Matches ({results.length})</h2>
             {results.map((r, i) => {
+              const key = `${r.source}:${r.match_ref}:${i}`;
               const level = risk(r.match_score);
+              const isOpen = !!expanded[key];
+              const fb = feedback[key];
+              const totalPossible = r.breakdown.reduce((s, b) => s + b.weight, 0);
               return (
-                <Card key={i} className="bg-slate-900 border-slate-700">
+                <Card key={key} className="bg-slate-900 border-slate-700">
                   <CardContent className="p-5">
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-3 gap-3">
                       <div>
                         <h3 className="text-lg font-semibold text-white">{r.display_name}</h3>
                         <p className="text-xs text-slate-500">
@@ -221,20 +225,130 @@ const CulpritSearch = () => {
                           {r.location ? ` · ${r.location}` : ""}
                         </p>
                       </div>
-                      <Badge className={riskColor(level)}>
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        {level.toUpperCase()} · {r.match_score}%
-                      </Badge>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge className={riskColor(level)}>
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          {level.toUpperCase()} · {r.match_score}%
+                        </Badge>
+                        <span className="text-[10px] text-slate-500">Confidence {r.confidence}%</span>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {r.match_reasons.slice(0, 6).map((rr, idx) => (
-                        <Badge key={idx} variant="outline" className="border-slate-600 text-slate-300 text-xs">{rr}</Badge>
+
+                    <div className="mb-3">
+                      <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                        <span>Overall match confidence</span>
+                        <span>{r.confidence}%</span>
+                      </div>
+                      <Progress value={r.confidence} className="h-1.5" />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {r.breakdown.slice(0, 6).map((b) => (
+                        <Badge
+                          key={b.field}
+                          variant="outline"
+                          className={
+                            b.strength === "exact"
+                              ? "border-green-500/50 text-green-300 text-xs"
+                              : "border-yellow-500/50 text-yellow-300 text-xs"
+                          }
+                        >
+                          {b.label}: {b.strength}
+                        </Badge>
                       ))}
                     </div>
-                    <div className="text-xs text-slate-500">
+
+                    <button
+                      className="text-xs text-purple-300 hover:text-purple-200 flex items-center gap-1 mb-2"
+                      onClick={() => setExpanded((s) => ({ ...s, [key]: !isOpen }))}
+                    >
+                      {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      {isOpen ? "Hide" : "Show"} per-field breakdown
+                    </button>
+
+                    {isOpen && (
+                      <div className="bg-slate-950/60 border border-slate-800 rounded p-3 mb-3 space-y-2">
+                        {r.breakdown.map((b) => (
+                          <div key={b.field} className="text-xs">
+                            <div className="flex justify-between text-slate-300 mb-1">
+                              <span className="font-medium">
+                                {b.label}
+                                <span className={`ml-2 ${b.strength === "exact" ? "text-green-400" : "text-yellow-400"}`}>
+                                  {b.strength}
+                                </span>
+                              </span>
+                              <span className="text-slate-500">{b.awarded} / {b.weight} pts</span>
+                            </div>
+                            <Progress value={(b.awarded / b.weight) * 100} className="h-1" />
+                            <div className="text-[10px] text-slate-500 mt-1">Record value: {b.matched_value_masked || "—"}</div>
+                          </div>
+                        ))}
+                        <div className="flex justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800">
+                          <span>Total points awarded</span>
+                          <span>{r.match_score} / {totalPossible}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-xs text-slate-500 mb-3">
                       {r.category ? `Category: ${r.category} · ` : ""}
                       {r.concerns_count > 0 ? `${r.concerns_count} concern${r.concerns_count === 1 ? "" : "s"} on record · ` : ""}
                       Added {new Date(r.created_at).toLocaleDateString()}
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-800">
+                      <span className="text-xs text-slate-400 mr-1">Was this match accurate?</span>
+                      {(["correct", "incorrect"] as const).map((kind) => {
+                        const active = fb === kind;
+                        const Icon = kind === "correct" ? ThumbsUp : ThumbsDown;
+                        return (
+                          <Button
+                            key={kind}
+                            size="sm"
+                            variant="outline"
+                            disabled={!!fb || savingFeedback === key}
+                            onClick={async () => {
+                              if (!user) {
+                                toast({ title: "Sign in required", description: "Log in to submit feedback." });
+                                return;
+                              }
+                              setSavingFeedback(key);
+                              const { error } = await supabase.from("background_check_feedback").insert({
+                                user_id: user.id,
+                                source: r.source,
+                                match_ref: r.match_ref,
+                                match_score: r.match_score,
+                                is_correct: kind === "correct",
+                                query_snapshot: { ...filters, socials },
+                                reasons: r.breakdown,
+                              });
+                              setSavingFeedback(null);
+                              if (error) {
+                                toast({ title: "Couldn't save feedback", description: error.message, variant: "destructive" });
+                                return;
+                              }
+                              setFeedback((s) => ({ ...s, [key]: kind }));
+                              toast({ title: "Thanks!", description: "Your feedback improves future AI matching." });
+                            }}
+                            className={
+                              active
+                                ? (kind === "correct"
+                                    ? "border-green-500/70 text-green-300 bg-green-500/10"
+                                    : "border-red-500/70 text-red-300 bg-red-500/10")
+                                : "border-slate-600 text-slate-300"
+                            }
+                          >
+                            {savingFeedback === key ? (
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            ) : active ? (
+                              <Check className="w-3 h-3 mr-1" />
+                            ) : (
+                              <Icon className="w-3 h-3 mr-1" />
+                            )}
+                            {kind === "correct" ? "Correct" : "Incorrect"}
+                          </Button>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
