@@ -83,6 +83,45 @@ export type Database = {
         }
         Relationships: []
       }
+      background_check_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean
+          match_ref: string | null
+          match_score: number
+          note: string | null
+          query_snapshot: Json
+          reasons: Json
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct: boolean
+          match_ref?: string | null
+          match_score: number
+          note?: string | null
+          query_snapshot?: Json
+          reasons?: Json
+          source: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          match_ref?: string | null
+          match_score?: number
+          note?: string | null
+          query_snapshot?: Json
+          reasons?: Json
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       diary_entries: {
         Row: {
           content: string
