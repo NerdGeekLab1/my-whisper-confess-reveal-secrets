@@ -1,0 +1,150 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+type Query = {
+  name?: string;
+  phone?: string;
+  email?: string;
+  location?: string;
+  college?: string;
+  company?: string;
+  dob?: string;
+  socials?: Record<string, string>; // platform -> handle
+};
+
+const norm = (v: unknown) => String(v ?? "").trim().toLowerCase();
+
+function scoreMatch(q: Query, rec: {
+  name?: string; phone?: string; email?: string; location?: string;
+  socials?: Record<string, string>; extras?: Record<string, string>;
+}) {
+  let score = 0;
+  const reasons: string[] = [];
+  const cmp = (a?: string, b?: string, w = 20, label = "") => {
+    const A = norm(a), B = norm(b);
+    if (!A || !B) return;
+    if (A === B) { score += w; reasons.push(`${label} exact`); }
+    else if (A.includes(B) || B.includes(A)) { score += Math.floor(w * 0.6); reasons.push(`${label} partial`); }
+  };
+  cmp(q.name, rec.name, 25, "name");
+  cmp(q.phone, rec.phone, 30, "phone");
+  cmp(q.email, rec.email, 30, "email");
+  cmp(q.location, rec.location, 10, "location");
+  if (q.socials && rec.socials) {
+    for (const [k, v] of Object.entries(q.socials)) {
+      if (!v) continue;
+      const r = rec.socials[k];
+      cmp(v.replace(/^@/, ""), (r || "").replace(/^@/, ""), 20, `${k}`);
+    }
+  }
+  return { score, reasons };
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const q: Query = await req.json();
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const admin = createClient(url, svc);
+
+    // Pull candidate records (bounded)
+    const [loyalty, priv] = await Promise.all([
+      admin.from("loyalty_scores").select("id,partner_name,overall_score,category,concerns,partner_social_handles,misc_details,form_data,created_at").limit(500),
+      admin.from("post_private_details").select("id,post_id,subject_name,subject_phone,subject_email,subject_location,social_handles,created_at").limit(500),
+    ]);
+
+    const candidates: any[] = [];
+
+    for (const r of loyalty.data ?? []) {
+      const misc = (r.misc_details ?? {}) as Record<string, string>;
+      const m = scoreMatch(q, {
+        name: r.partner_name,
+        location: misc.city,
+        socials: (r.partner_social_handles ?? {}) as Record<string, string>,
+      });
+      if (m.score > 0) candidates.push({
+        source: "partner_check",
+        id: r.id,
+        display_name: r.partner_name,
+        location: misc.city,
+        score: r.overall_score,
+        category: r.category,
+        concerns: r.concerns,
+        match_score: m.score,
+        match_reasons: m.reasons,
+        created_at: r.created_at,
+      });
+    }
+
+    for (const r of priv.data ?? []) {
+      const m = scoreMatch(q, {
+        name: r.subject_name ?? undefined,
+        phone: r.subject_phone ?? undefined,
+        email: r.subject_email ?? undefined,
+        location: r.subject_location ?? undefined,
+        socials: (r.social_handles ?? {}) as Record<string, string>,
+      });
+      if (m.score > 0) candidates.push({
+        source: "confession",
+        id: r.id,
+        post_id: r.post_id,
+        display_name: r.subject_name,
+        location: r.subject_location,
+        match_score: m.score,
+        match_reasons: m.reasons,
+        created_at: r.created_at,
+      });
+    }
+
+    candidates.sort((a, b) => b.match_score - a.match_score);
+    const top = candidates.slice(0, 10);
+
+    // AI summary (best-effort)
+    let ai_summary = "";
+    const key = Deno.env.get("LOVABLE_API_KEY");
+    if (key && top.length) {
+      try {
+        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+          body: JSON.stringify({
+            model: "google/gemini-3.6-flash",
+            messages: [
+              { role: "system", content: "You are a background-check analyst. In 2-4 short sentences, summarize how confidently the query matches internal records. Never reveal raw phone/email; refer to matched fields generically. Flag risk level (low/medium/high)." },
+              { role: "user", content: `Query: ${JSON.stringify(q)}\nMatches: ${JSON.stringify(top.map(t => ({ source: t.source, name: t.display_name, match_score: t.match_score, reasons: t.match_reasons, risk_hint: t.category ?? null })))}` },
+            ],
+          }),
+        });
+        const j = await resp.json();
+        ai_summary = j?.choices?.[0]?.message?.content ?? "";
+      } catch (_) { /* ignore */ }
+    }
+
+    // Sanitize matches for client — hide raw PII
+    const results = top.map((t) => ({
+      source: t.source,
+      display_name: t.display_name ? `${String(t.display_name).charAt(0)}${"•".repeat(Math.max(1, String(t.display_name).length - 2))}${String(t.display_name).slice(-1)}` : "Unknown",
+      location: t.location ?? null,
+      match_score: Math.min(100, t.match_score),
+      match_reasons: t.match_reasons,
+      category: t.category ?? null,
+      concerns_count: Array.isArray(t.concerns) ? t.concerns.length : 0,
+      created_at: t.created_at,
+    }));
+
+    return new Response(JSON.stringify({ results, ai_summary, total: candidates.length }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String(e?.message ?? e) }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
